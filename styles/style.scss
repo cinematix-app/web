@@ -1,0 +1,23 @@
+@import "~bootstrap/scss/_functions";
+
+// Variables.
+$body-bg: #55555f;
+$primary:  #FEF638;
+$secondary:  lighten($body-bg, 50%);
+$body-color: $secondary;
+$body-bg: #55555f;
+$input-bg: transparent;
+$input-border-color: $secondary;
+$input-color: $body-color;
+
+// Reboot
+@import "~bootstrap/scss/bootstrap";
+
+header {
+    background-color: $primary;
+    img {
+        display: block;
+        height: 1.2em;
+        margin: 0 auto;
+    }
+}

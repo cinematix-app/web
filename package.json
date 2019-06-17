@@ -4,12 +4,14 @@
   "scripts": {
     "dev": "next",
     "build": "next build",
+    "deploy": "next export && gsutil -m rm gs://cinematix.app/** && gsutil -m cp -r out/* gs://cinematix.app",
     "start": "next start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@zeit/next-sass": "^1.0.1",
+    "bootstrap": "^4.3.1",
     "next": "^8.1.0",
     "node-sass": "^4.12.0",
     "react": "^16.8.6",
