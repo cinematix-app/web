@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next",
     "build": "next build",
-    "deploy": "next export && gsutil -m rm gs://cinematix.app/** && gsutil -m cp -r out/* gs://cinematix.app",
+    "deploy": "next build && next export && gsutil -m rm gs://cinematix.app/** && gsutil -m cp -r out/* gs://cinematix.app",
     "start": "next start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -48,7 +48,7 @@ function Index() {
   }, [
     state.fields.zipCode.value,
     state.fields.zipCode.valid,
-  ])
+  ]);
 
   return (
     <Layout>
