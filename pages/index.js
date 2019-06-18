@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef } from 'react';
+import { useReducer, useEffect } from 'react';
 import Router from 'next/router';
 import { Subject } from 'rxjs';
 import { switchMap, distinctUntilChanged } from 'rxjs/operators';
@@ -16,6 +16,7 @@ const initialState = {
     },
   },
   result: {},
+  searchParsed: false,
 };
 
 function reducer(state, action) {
@@ -36,6 +37,11 @@ function reducer(state, action) {
       return {
         ...state,
         result: action.result,
+      };
+    case 'searchParsed':
+      return {
+        ...state,
+        searchParsed: true,
       };
     default:
       throw new Error();
@@ -61,7 +67,6 @@ const query = (new Subject()).pipe(
 
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const searchParsed = useRef(false);
 
   const handleChange = ({ target }) => dispatch({
     type: 'change',
@@ -98,7 +103,7 @@ function Index() {
   // Update the route.
   useEffect(() => {
     // Wait for the search to be parsed.
-    if (!searchParsed.current) {
+    if (!state.searchParsed) {
       return;
     }
 
@@ -129,7 +134,7 @@ function Index() {
       });
     });
 
-    searchParsed.current = true;
+    dispatch({type: 'searchParsed'});
   }, []);
 
   const showtimes = [...(state.result.showtimes || [])].filter(({ expired }) => {
