@@ -141,7 +141,7 @@ function Index() {
     return !expired;
   }).sort((a, b) => (
     // @TODO make the sort configurable.
-    DateTime.fromFormat(a.datetime, dateTimeFormat) > DateTime.fromFormat(b.datetime, dateTimeFormat)
+    DateTime.fromFormat(a.datetime, dateTimeFormat) - DateTime.fromFormat(b.datetime, dateTimeFormat)
   )).map((showtime) => {
     const movie = (state.result.movies || []).find(m => showtime.movie === m.id);
     const theater = (state.result.theaters || []).find(t => showtime.theater === t.id);
@@ -164,6 +164,23 @@ function Index() {
       );
     }
 
+    let className = [
+      'btn',
+      'btn-block',
+    ];
+    if (theater.isTicketing) {
+      className = [
+        ...className,
+        'btn-outline-primary',
+      ];
+    } else {
+      className = [
+        ...className,
+        'btn-outline-secondary',
+        'disabled',
+      ];
+    }
+
     return (
       <div key={showtime.id} className="row mb-2">
         <div className="col-md-4">
@@ -173,7 +190,7 @@ function Index() {
           {theaterDisplay}
         </div>
         <div className="col-md-4">
-          <a className="btn btn-outline-primary btn-block" href={showtime.url}>
+          <a className={className.join(' ')} href={showtime.url}>
             {DateTime.fromFormat(showtime.datetime, dateTimeFormat).toLocaleString(DateTime.TIME_SIMPLE)}
           </a>
         </div>
