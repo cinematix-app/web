@@ -124,17 +124,17 @@ function Index() {
 
   // Update the query
   useEffect(() => {
-    const search = Router.query;
-    Object.keys(search).forEach((name) => {
+    const url = new URL(window.location.href);
+    url.searchParams.forEach((value, name) => {
       dispatch({
         type: 'change',
         name,
-        value: search[name] || '',
+        value,
         valid: null,
       });
     });
 
-    dispatch({type: 'searchParsed'});
+    dispatch({ type: 'searchParsed' });
   }, []);
 
   const showtimes = [...(state.result.showtimes || [])].filter(({ expired }) => {
