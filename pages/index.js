@@ -1,11 +1,10 @@
-import { useReducer, useEffect } from 'react';
+import { useReducer, useEffect, useRef } from 'react';
 import Router from 'next/router';
 import { Subject } from 'rxjs';
 import { switchMap, distinctUntilChanged } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime } from 'luxon';
 import Layout from '../components/layout';
-import { URLSearchParams } from 'url';
 
 const dateTimeFormat = 'yyyy-mm-dd+HH:mm';
 
@@ -62,6 +61,7 @@ const query = (new Subject()).pipe(
 
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const searchParsed = useRef(false);
 
   const handleChange = ({ target }) => dispatch({
     type: 'change',
@@ -95,6 +95,28 @@ function Index() {
     state.fields.zipCode.valid,
   ]);
 
+  // Update the route.
+  useEffect(() => {
+    // Wait for the search to be parsed.
+    if (!searchParsed.current) {
+      return;
+    }
+
+    const searchParams = new URLSearchParams();
+    Object.keys(state.fields).forEach((name) => {
+      if (state.fields[name].value) {
+        searchParams.set(name, state.fields[name].value);
+      } else {
+        searchParams.delete(name);
+      }
+    });
+
+    const search = searchParams.toString();
+    Router.replace(search ? `/?${search}` : '/');
+  }, [
+    state.fields.zipCode.value,
+  ]);
+
   // Update the query
   useEffect(() => {
     const search = Router.query;
@@ -106,25 +128,9 @@ function Index() {
         valid: null,
       });
     });
+
+    searchParsed.current = true;
   }, []);
-
-  // Update the route.
-  useEffect(() => {
-    // URLSearchParams doesn't work with webpack for some reason, use a fake value.
-    const url = new URL('http://example.com');
-    Object.keys(state.fields).forEach((field) => {
-      if (state.fields[field].value) {
-        url.searchParams.set(field, state.fields[field].value);
-      } else {
-        url.searchParams.delete(field);
-      }
-    });
-
-    const search = url.searchParams.toString();
-    Router.replace(search ? `/?${search}` : '/');
-  }, [
-    state.fields.zipCode.value,
-  ]);
 
   const showtimes = [...(state.result.showtimes || [])].filter(({ expired }) => {
     return !expired;
