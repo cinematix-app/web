@@ -1,5 +1,13 @@
 import { useReducer, useEffect } from 'react';
+import Router from 'next/router';
+import { Subject } from 'rxjs';
+import { switchMap, distinctUntilChanged } from 'rxjs/operators';
+import { ajax } from 'rxjs/ajax';
+import { DateTime } from 'luxon';
 import Layout from '../components/layout';
+import { URLSearchParams } from 'url';
+
+const dateTimeFormat = 'yyyy-mm-dd+HH:mm';
 
 const initialState = {
   fields: {
@@ -8,6 +16,7 @@ const initialState = {
       valid: false,
     },
   },
+  result: {},
 };
 
 function reducer(state, action) {
@@ -23,10 +32,33 @@ function reducer(state, action) {
           },
         },
       };
+    case 'result':
+
+      return {
+        ...state,
+        result: action.result,
+      };
     default:
       throw new Error();
   }
 }
+
+const query = (new Subject()).pipe(
+  distinctUntilChanged((z, y) => z.zipCode === y.zipCode),
+  switchMap((q) => {
+    const zipCode = q.zipCode.padStart(5, '0'); 
+    const date = DateTime.local();
+
+    const url = new URL('https://cinematix.app/api/showtimes');
+    url.searchParams.set('zipCode', zipCode);
+
+    // @TODO Allow the user to specify the date.
+    url.searchParams.set('date', date.toISODate());
+
+    // @TODO handle an error!
+    return ajax.getJSON(url.toString());
+  }),
+);
 
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -38,17 +70,105 @@ function Index() {
     valid: target.checkValidity(),
   });
 
+  // Subscribe the query changes and dispatch the results.
+  useEffect(() => {
+    query.subscribe((result) => {
+      dispatch({
+        type: 'result',
+        result,
+      });
+    });
+  }, []);
+
+  // Update the query.
   useEffect(() => {
     // Wait for a valid Zip Code before doing anything.
-    if (!state.fields.zipCode.valid) {
+    if (state.fields.zipCode.valid === false) {
       return;
     }
 
-    console.log(state.fields.zipCode.value);
+    query.next({
+      zipCode: state.fields.zipCode.value,
+    });
   }, [
     state.fields.zipCode.value,
     state.fields.zipCode.valid,
   ]);
+
+  // Update the query
+  useEffect(() => {
+    const search = Router.query;
+    Object.keys(search).forEach((name) => {
+      dispatch({
+        type: 'change',
+        name,
+        value: search[name] || '',
+        valid: null,
+      });
+    });
+  }, []);
+
+  // Update the route.
+  useEffect(() => {
+    // URLSearchParams doesn't work with webpack for some reason, use a fake value.
+    const url = new URL('http://example.com');
+    Object.keys(state.fields).forEach((field) => {
+      if (state.fields[field].value) {
+        url.searchParams.set(field, state.fields[field].value);
+      } else {
+        url.searchParams.delete(field);
+      }
+    });
+
+    const search = url.searchParams.toString();
+    Router.replace(search ? `/?${search}` : '/');
+  }, [
+    state.fields.zipCode.value,
+  ]);
+
+  const showtimes = [...(state.result.showtimes || [])].filter(({ expired }) => {
+    return !expired;
+  }).sort((a, b) => (
+    // @TODO make the sort configurable.
+    DateTime.fromFormat(a.datetime, dateTimeFormat) > DateTime.fromFormat(b.datetime, dateTimeFormat)
+  )).map((showtime) => {
+    const movie = (state.result.movies || []).find(m => showtime.movie === m.id);
+    const theater = (state.result.theaters || []).find(t => showtime.theater === t.id);
+
+    let movieDisplay;
+    if (movie) {
+      movieDisplay = (
+        <a href={movie.url}>
+          {movie.title}
+        </a>
+      );
+    }
+    
+    let theaterDisplay;
+    if (theater) {
+      theaterDisplay = (
+        <a href={theater.url}>
+          {theater.name}
+        </a>
+      );
+    }
+
+    return (
+      <div key={showtime.id} className="row mb-2">
+        <div className="col-md-4">
+          {movieDisplay}
+        </div>
+        <div className="col-md-4">
+          {theaterDisplay}
+        </div>
+        <div className="col-md-4">
+          <a className="btn btn-outline-primary btn-block" href={showtime.url}>
+            {DateTime.fromFormat(showtime.datetime, dateTimeFormat).toLocaleString(DateTime.TIME_SIMPLE)}
+          </a>
+        </div>
+      </div>
+    );
+  });
 
   return (
     <Layout>
@@ -70,6 +190,7 @@ function Index() {
           </div>
         </div>
       </form>
+      {showtimes}
     </Layout>
   );
 }
