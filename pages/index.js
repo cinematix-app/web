@@ -17,8 +17,8 @@ const initialState = {
       value: '10',
       valid: true,
     },
-    isTicketing: {
-      value: true,
+    ticketing: {
+      value: 'both',
       valid: true,
     },
   },
@@ -59,7 +59,7 @@ const query = (new Subject()).pipe(
   distinctUntilChanged((z, y) => (
     z.zipCode === y.zipCode
     && z.limit === y.limit
-    && z.isTicketing === y.isTicketing
+    && z.ticketing === y.ticketing
   )),
   switchMap((q) => {
     const zipCode = q.zipCode.padStart(5, '0');
@@ -68,15 +68,11 @@ const query = (new Subject()).pipe(
     const url = new URL('https://cinematix.app/api/showtimes');
     url.searchParams.set('zipCode', zipCode);
 
-    if (q.limit !== initialState.fields.limit.value) {
-      url.searchParams.set('limit', q.limit);
-    }
-
-    // @TODO The API supports three states (true = all, false = none, null = all)
-    //       Perhaps this should be an amenetiy?
-    if (q.isTicketing !== initialState.fields.isTicketing.value && q.isTicketing !== false) {
-      url.searchParams.set('isTicketing', q.isTicketing);
-    }
+    ['limit', 'ticketing'].forEach((field) => {
+      if (q[field] !== initialState.fields[field].value) {
+        url.searchParams.set(field, q[field]);
+      }
+    });
 
     // @TODO Allow the user to specify the date.
     url.searchParams.set('date', date.toISODate());
@@ -121,7 +117,7 @@ function Index() {
     if (
       state.fields.zipCode.valid === false
       || state.fields.limit.valid === false
-      || state.fields.isTicketing.valid === false
+      || state.fields.ticketing.valid === false
     ) {
       return;
     }
@@ -129,15 +125,15 @@ function Index() {
     query.next({
       zipCode: state.fields.zipCode.value,
       limit: state.fields.limit.value,
-      isTicketing: state.fields.isTicketing.value,
+      ticketing: state.fields.ticketing.value,
     });
   }, [
     state.fields.zipCode.value,
     state.fields.zipCode.valid,
     state.fields.limit.value,
     state.fields.limit.valid,
-    state.fields.isTicketing.value,
-    state.fields.isTicketing.valid,
+    state.fields.ticketing.value,
+    state.fields.ticketing.valid,
   ]);
 
   // Update the route.
@@ -161,7 +157,7 @@ function Index() {
   }, [
     state.fields.zipCode.value,
     state.fields.limit.value,
-    state.fields.isTicketing.value,
+    state.fields.ticketing.value,
   ]);
 
   // Update the query
@@ -274,11 +270,13 @@ function Index() {
               onChange={handleChange}
             />
           </div>
-          <div className="col-lg col-12 col-form-label">
-            <div className="form-check">
-              <input className="form-check-input" type="checkbox" name="isTicketing" checked={state.fields.isTicketing.value} onChange={handleChange} id="isTicketing" />
-              <label className="form-check-label" htmlFor="isTicketing">Online Ticketing Only</label>
-            </div>
+          <label className="col-auto col-form-label" htmlFor="ticketing">Ticketing</label>
+          <div className="col-md col-12">
+            <select className="form-control form-control-sm" name="ticketing" value={state.fields.ticketing.value} onChange={handleChange} id="ticketing">
+              <option value="both">Both</option>
+              <option value="online">Online</option>
+              <option value="offline">Offline</option>
+            </select>
           </div>
         </div>
       </form>
