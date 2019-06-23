@@ -1,12 +1,11 @@
 import { useReducer, useEffect } from 'react';
 import Router from 'next/router';
 import { Subject } from 'rxjs';
-import { switchMap, distinctUntilChanged } from 'rxjs/operators';
+import { switchMap, flatMap, distinctUntilChanged } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime } from 'luxon';
+import { frame } from 'jsonld';
 import Layout from '../components/layout';
-
-const dateTimeFormat = 'yyyy-mm-dd+HH:mm';
 
 const initialState = {
   fields: {
@@ -15,7 +14,7 @@ const initialState = {
       valid: false,
     },
   },
-  result: {},
+  result: [],
   searchParsed: false,
 };
 
@@ -63,6 +62,15 @@ const query = (new Subject()).pipe(
     // @TODO handle an error!
     return ajax.getJSON(url.toString());
   }),
+  flatMap(data => (
+    frame(data, {
+      '@context': {
+        '@vocab': 'https://schema.org/',
+        cinematix: 'https://cinematix.app/',
+      },
+      '@type': 'ScreeningEvent',
+    }).then(result => result['@graph'] || [])
+  )),
 );
 
 function Index() {
@@ -137,29 +145,26 @@ function Index() {
     dispatch({ type: 'searchParsed' });
   }, []);
 
-  const showtimes = [...(state.result.showtimes || [])].filter(({ expired }) => {
-    return !expired;
-  }).sort((a, b) => (
+  const showtimes = [...(state.result || [])].filter(({ offers }) => (
+    offers.availability !== 'https://schema.org/Discontinued'
+  )).sort((a, b) => (
     // @TODO make the sort configurable.
-    DateTime.fromFormat(a.datetime, dateTimeFormat) - DateTime.fromFormat(b.datetime, dateTimeFormat)
+    DateTime.fromISO(a.startDate) - DateTime.fromISO(b.startDate)
   )).map((showtime) => {
-    const movie = (state.result.movies || []).find(m => showtime.movie === m.id);
-    const theater = (state.result.theaters || []).find(t => showtime.theater === t.id);
-
     let movieDisplay;
-    if (movie) {
+    if (showtime.workPresented) {
       movieDisplay = (
-        <a href={movie.url}>
-          {movie.title}
+        <a href={showtime.workPresented.url}>
+          {showtime.workPresented.name}
         </a>
       );
     }
     
     let theaterDisplay;
-    if (theater) {
+    if (showtime.location) {
       theaterDisplay = (
-        <a href={theater.url}>
-          {theater.name}
+        <a href={showtime.location.url}>
+          {showtime.location.name}
         </a>
       );
     }
@@ -168,7 +173,7 @@ function Index() {
       'btn',
       'btn-block',
     ];
-    if (theater.isTicketing) {
+    if (showtime.offers.availability === 'https://schema.org/InStock') {
       className = [
         ...className,
         'btn-outline-primary',
@@ -182,7 +187,7 @@ function Index() {
     }
 
     return (
-      <div key={showtime.id} className="row mb-2">
+      <div key={showtime['@id']} className="row mb-2">
         <div className="col-md-4">
           {movieDisplay}
         </div>
@@ -190,8 +195,8 @@ function Index() {
           {theaterDisplay}
         </div>
         <div className="col-md-4">
-          <a className={className.join(' ')} href={showtime.url}>
-            {DateTime.fromFormat(showtime.datetime, dateTimeFormat).toLocaleString(DateTime.TIME_SIMPLE)}
+          <a className={className.join(' ')} href={showtime.offers.url}>
+            {DateTime.fromISO(showtime.startDate).toLocaleString(DateTime.TIME_SIMPLE)}
           </a>
         </div>
       </div>
