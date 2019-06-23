@@ -13,6 +13,14 @@ const initialState = {
       value: '',
       valid: false,
     },
+    limit: {
+      value: '10',
+      valid: true,
+    },
+    isTicketing: {
+      value: true,
+      valid: true,
+    },
   },
   result: [],
   searchParsed: false,
@@ -48,13 +56,27 @@ function reducer(state, action) {
 }
 
 const query = (new Subject()).pipe(
-  distinctUntilChanged((z, y) => z.zipCode === y.zipCode),
+  distinctUntilChanged((z, y) => (
+    z.zipCode === y.zipCode
+    && z.limit === y.limit
+    && z.isTicketing === y.isTicketing
+  )),
   switchMap((q) => {
-    const zipCode = q.zipCode.padStart(5, '0'); 
+    const zipCode = q.zipCode.padStart(5, '0');
     const date = DateTime.local();
 
     const url = new URL('https://cinematix.app/api/showtimes');
     url.searchParams.set('zipCode', zipCode);
+
+    if (q.limit !== initialState.fields.limit.value) {
+      url.searchParams.set('limit', q.limit);
+    }
+
+    // @TODO The API supports three states (true = all, false = none, null = all)
+    //       Perhaps this should be an amenetiy?
+    if (q.isTicketing !== initialState.fields.isTicketing.value && q.isTicketing !== false) {
+      url.searchParams.set('isTicketing', q.isTicketing);
+    }
 
     // @TODO Allow the user to specify the date.
     url.searchParams.set('date', date.toISODate());
@@ -79,7 +101,7 @@ function Index() {
   const handleChange = ({ target }) => dispatch({
     type: 'change',
     name: target.name,
-    value: target.value,
+    value: target.type === 'checkbox' ? target.checked : target.value,
     valid: target.checkValidity(),
   });
 
@@ -96,16 +118,26 @@ function Index() {
   // Update the query.
   useEffect(() => {
     // Wait for a valid Zip Code before doing anything.
-    if (state.fields.zipCode.valid === false) {
+    if (
+      state.fields.zipCode.valid === false
+      || state.fields.limit.valid === false
+      || state.fields.isTicketing.valid === false
+    ) {
       return;
     }
 
     query.next({
       zipCode: state.fields.zipCode.value,
+      limit: state.fields.limit.value,
+      isTicketing: state.fields.isTicketing.value,
     });
   }, [
     state.fields.zipCode.value,
     state.fields.zipCode.valid,
+    state.fields.limit.value,
+    state.fields.limit.valid,
+    state.fields.isTicketing.value,
+    state.fields.isTicketing.valid,
   ]);
 
   // Update the route.
@@ -117,7 +149,7 @@ function Index() {
 
     const searchParams = new URLSearchParams();
     Object.keys(state.fields).forEach((name) => {
-      if (state.fields[name].value) {
+      if (state.fields[name].value !== initialState.fields[name].value) {
         searchParams.set(name, state.fields[name].value);
       } else {
         searchParams.delete(name);
@@ -128,17 +160,26 @@ function Index() {
     Router.replace(search ? `/?${search}` : '/');
   }, [
     state.fields.zipCode.value,
+    state.fields.limit.value,
+    state.fields.isTicketing.value,
   ]);
 
   // Update the query
   useEffect(() => {
     const url = new URL(window.location.href);
     url.searchParams.forEach((value, name) => {
+      let fixedValue = value;
+      if (fixedValue === 'true') {
+        fixedValue = true;
+      } else if (fixedValue === 'false') {
+        fixedValue = false;
+      }
+  
       dispatch({
         type: 'change',
         name,
-        value,
-        valid: null,
+        value: fixedValue,
+        valid: typeof fixedValue === 'boolean' ? true : null,
       });
     });
 
@@ -205,10 +246,10 @@ function Index() {
 
   return (
     <Layout>
-      <form>
+      <form onSubmit={e => e.preventDefault()}>
         <div className="row form-group">
           <label className="col-auto col-form-label" htmlFor="zipCode">Zip Code</label>
-          <div className="col">
+          <div className="col-md col-12">
             <input
               className="form-control form-control-sm"
               type="number"
@@ -220,6 +261,24 @@ function Index() {
               value={state.fields.zipCode.value}
               onChange={handleChange}
             />
+          </div>
+          <label className="col-auto col-form-label" htmlFor="limit">Max. Theaters</label>
+          <div className="col-md col-12">
+            <input
+              className="form-control form-control-sm"
+              type="number"
+              id="limit"
+              name="limit"
+              min="0"
+              value={state.fields.limit.value}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="col-lg col-12 col-form-label">
+            <div className="form-check">
+              <input className="form-check-input" type="checkbox" name="isTicketing" checked={state.fields.isTicketing.value} onChange={handleChange} id="isTicketing" />
+              <label className="form-check-label" htmlFor="isTicketing">Online Ticketing Only</label>
+            </div>
           </div>
         </div>
       </form>
