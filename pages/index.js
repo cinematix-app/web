@@ -5,6 +5,7 @@ import { switchMap, flatMap, distinctUntilChanged } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime } from 'luxon';
 import { frame } from 'jsonld';
+import Select from 'react-select';
 import Layout from '../components/layout';
 
 const initialState = {
@@ -91,6 +92,12 @@ const query = (new Subject()).pipe(
   )),
 );
 
+const ticketingOptions = [
+  { value: 'both', label: 'Both' },
+  { value: 'online', label: 'Online' },
+  { value: 'offline', label: 'Offline' },
+];
+
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
 
@@ -100,6 +107,29 @@ function Index() {
     value: target.type === 'checkbox' ? target.checked : target.value,
     valid: target.checkValidity(),
   });
+
+  // Update the query
+  // @TODO Pass this in with server rendering!
+  if (!state.searchParsed && typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    url.searchParams.forEach((value, name) => {
+      let fixedValue = value;
+      if (fixedValue === 'true') {
+        fixedValue = true;
+      } else if (fixedValue === 'false') {
+        fixedValue = false;
+      }
+  
+      dispatch({
+        type: 'change',
+        name,
+        value: fixedValue,
+        valid: typeof fixedValue === 'boolean' ? true : null,
+      });
+    });
+
+    dispatch({ type: 'searchParsed' });
+  }
 
   // Subscribe the query changes and dispatch the results.
   useEffect(() => {
@@ -159,28 +189,6 @@ function Index() {
     state.fields.limit.value,
     state.fields.ticketing.value,
   ]);
-
-  // Update the query
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.forEach((value, name) => {
-      let fixedValue = value;
-      if (fixedValue === 'true') {
-        fixedValue = true;
-      } else if (fixedValue === 'false') {
-        fixedValue = false;
-      }
-  
-      dispatch({
-        type: 'change',
-        name,
-        value: fixedValue,
-        valid: typeof fixedValue === 'boolean' ? true : null,
-      });
-    });
-
-    dispatch({ type: 'searchParsed' });
-  }, []);
 
   const showtimes = [...(state.result || [])].filter(({ offers }) => (
     offers.availability !== 'https://schema.org/Discontinued'
@@ -247,7 +255,7 @@ function Index() {
           <label className="col-auto col-form-label" htmlFor="zipCode">Zip Code</label>
           <div className="col-md col-12">
             <input
-              className="form-control form-control-sm"
+              className="form-control"
               type="number"
               id="zipCode"
               name="zipCode"
@@ -261,7 +269,7 @@ function Index() {
           <label className="col-auto col-form-label" htmlFor="limit">Max. Theaters</label>
           <div className="col-md col-12">
             <input
-              className="form-control form-control-sm"
+              className="form-control"
               type="number"
               id="limit"
               name="limit"
@@ -272,11 +280,19 @@ function Index() {
           </div>
           <label className="col-auto col-form-label" htmlFor="ticketing">Ticketing</label>
           <div className="col-md col-12">
-            <select className="form-control form-control-sm" name="ticketing" value={state.fields.ticketing.value} onChange={handleChange} id="ticketing">
-              <option value="both">Both</option>
-              <option value="online">Online</option>
-              <option value="offline">Offline</option>
-            </select>
+            <Select
+              name="ticketing"
+              options={ticketingOptions}
+              className="select-container"
+              classNamePrefix="select"
+              value={ticketingOptions.find(({ value }) => value === state.fields.ticketing.value)}
+              onChange={({ value }) => dispatch({
+                type: 'change',
+                name: 'ticketing',
+                value,
+                valid: null,
+              })}
+            />
           </div>
         </div>
       </form>

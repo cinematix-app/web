@@ -9,6 +9,13 @@ $body-bg: #55555f;
 $input-bg: transparent;
 $input-border-color: $secondary;
 $input-color: $body-color;
+$dropdown-link-color: $body-color;
+
+@import "~bootstrap/scss/_variables";
+
+$dropdown-link-hover-bg: $secondary;
+$dropdown-link-hover-color: color-yiq($secondary);
+$dropdown-link-active-color: color-yiq($primary);
 
 // Reboot
 @import "~bootstrap/scss/bootstrap";
@@ -19,5 +26,50 @@ header {
         display: block;
         height: 1.2em;
         margin: 0 auto;
+    }
+}
+
+.select-container {
+    .select__control {
+        border-color: $input-border-color;
+        background-color: $input-bg;
+        &:hover {
+            border-color: $input-border-color;
+        }
+        &.select__control--is-focused {
+            border-color: $input-focus-border-color;
+            box-shadow: $input-focus-box-shadow;
+        }
+
+    }
+    .select__single-value {
+        color: $input-color;
+    }
+    .select__dropdown-indicator svg path {
+        fill:  $input-border-color;
+    }
+    .select__control--menu-is-open .select__dropdown-indicator svg path {
+        fill: $input-focus-border-color;
+    }
+    .select__menu {
+        background: $body-bg;
+        border-width: $input-border-width;
+        border-color: $input-border-color;
+        border-style: solid;
+        margin: 0;
+    }
+    .select__menu-list {
+        padding: 0;
+    }
+    .select__option {
+        color: $dropdown-link-color;
+    }
+    .select__option--is-focused {
+        color: $dropdown-link-hover-color;
+        background-color: $dropdown-link-hover-bg;
+    }
+    .select__option--is-selected {
+        color: $dropdown-link-active-color;
+        background-color: $dropdown-link-active-bg;
     }
 }
