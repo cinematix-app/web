@@ -14,7 +14,6 @@ const initialState = {
     limit: '10',
     ticketing: 'both',
     startDate: DateTime.local().toFormat('yyyy-MM-dd'),
-    endDate: DateTime.local().toFormat('yyyy-MM-dd'),
   },
   valid: false,
   result: [],
@@ -53,18 +52,19 @@ const query = (new Subject()).pipe(
     z.zipCode === y.zipCode
     && z.limit === y.limit
     && z.ticketing === y.ticketing
+    && z.startDate === y.startDate
   )),
   switchMap((q) => {
     const zipCode = q.zipCode.padStart(5, '0');
     const url = new URL('https://cinematix.app/api/showtimes');
     url.searchParams.set('zipCode', zipCode);
 
-    ['limit', 'ticketing', 'startDate', 'endDate'].forEach((field) => {
+    ['limit', 'ticketing', 'startDate'].forEach((field) => {
       if (q[field] !== initialState.fields[field]) {
         url.searchParams.set(field, q[field]);
       }
     });
-    
+
     // @TODO handle an error!
     return ajax.getJSON(url.toString());
   }),
@@ -131,18 +131,25 @@ function Index() {
       return;
     }
 
-    const { zipCode, limit, ticketing } = state.fields; 
+    const {
+      zipCode,
+      limit,
+      ticketing,
+      startDate,
+    } = state.fields; 
 
     query.next({
       zipCode,
       limit,
       ticketing,
+      startDate,
     });
   }, [
     state.valid,
     state.fields.zipCode,
     state.fields.limit,
     state.fields.ticketing,
+    state.fields.startDate,
   ]);
 
   // Update the route.
@@ -168,7 +175,6 @@ function Index() {
     state.fields.limit,
     state.fields.ticketing,
     state.fields.startDate,
-    state.fields.endDate,
   ]);
 
   const showtimes = [...(state.result || [])].filter(({ offers }) => (
@@ -277,7 +283,7 @@ function Index() {
           </div>
         </div>
         <div className="row form-group">
-          <label className="col-auto col-form-label" htmlFor="startDate">Start Date</label>
+          <label className="col-auto col-form-label" htmlFor="startDate">Date</label>
           <div className="col-md col-12">
             <input
               className="form-control"
@@ -286,19 +292,6 @@ function Index() {
               name="startDate"
               min={DateTime.local().toFormat('yyyy-MM-dd')}
               value={state.fields.startDate}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <label className="col-auto col-form-label" htmlFor="endDate">End Date</label>
-          <div className="col-md col-12">
-            <input
-              className="form-control"
-              type="date"
-              id="endDate"
-              name="endDate"
-              min={state.fields.startDate}
-              value={state.fields.endDate}
               onChange={handleChange}
               required
             />
