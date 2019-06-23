@@ -1,4 +1,4 @@
-import { useReducer, useEffect } from 'react';
+import { useReducer, useEffect, useRef } from 'react';
 import Router from 'next/router';
 import { Subject } from 'rxjs';
 import { switchMap, flatMap, distinctUntilChanged } from 'rxjs/operators';
@@ -10,19 +10,13 @@ import Layout from '../components/layout';
 
 const initialState = {
   fields: {
-    zipCode: {
-      value: '',
-      valid: false,
-    },
-    limit: {
-      value: '10',
-      valid: true,
-    },
-    ticketing: {
-      value: 'both',
-      valid: true,
-    },
+    zipCode: '',
+    limit: '10',
+    ticketing: 'both',
+    startDate: DateTime.local().toFormat('yyyy-MM-dd'),
+    endDate: DateTime.local().toFormat('yyyy-MM-dd'),
   },
+  valid: false,
   result: [],
   searchParsed: false,
 };
@@ -34,11 +28,9 @@ function reducer(state, action) {
         ...state,
         fields: {
           ...state.fields,
-          [action.name]: {
-            value: action.value,
-            valid: action.valid,
-          },
+          [action.name]: action.value,
         },
+        valid: action.valid,
       };
     case 'result':
 
@@ -64,20 +56,15 @@ const query = (new Subject()).pipe(
   )),
   switchMap((q) => {
     const zipCode = q.zipCode.padStart(5, '0');
-    const date = DateTime.local();
-
     const url = new URL('https://cinematix.app/api/showtimes');
     url.searchParams.set('zipCode', zipCode);
 
-    ['limit', 'ticketing'].forEach((field) => {
-      if (q[field] !== initialState.fields[field].value) {
+    ['limit', 'ticketing', 'startDate', 'endDate'].forEach((field) => {
+      if (q[field] !== initialState.fields[field]) {
         url.searchParams.set(field, q[field]);
       }
     });
-
-    // @TODO Allow the user to specify the date.
-    url.searchParams.set('date', date.toISODate());
-
+    
     // @TODO handle an error!
     return ajax.getJSON(url.toString());
   }),
@@ -99,32 +86,28 @@ const ticketingOptions = [
 ];
 
 function Index() {
+  const formRef = useRef(null);
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const handleChange = ({ target }) => dispatch({
-    type: 'change',
-    name: target.name,
-    value: target.type === 'checkbox' ? target.checked : target.value,
-    valid: target.checkValidity(),
-  });
+  const handleChange = ({ target }) => {
+    dispatch({
+      type: 'change',
+      name: target.name,
+      value: target.type === 'checkbox' ? target.checked : target.value,
+      valid: formRef.current ? formRef.current.checkValidity() : null,
+    });
+  };
 
   // Update the query
   // @TODO Pass this in with server rendering!
   if (!state.searchParsed && typeof window !== 'undefined') {
     const url = new URL(window.location.href);
     url.searchParams.forEach((value, name) => {
-      let fixedValue = value;
-      if (fixedValue === 'true') {
-        fixedValue = true;
-      } else if (fixedValue === 'false') {
-        fixedValue = false;
-      }
-  
       dispatch({
         type: 'change',
         name,
-        value: fixedValue,
-        valid: typeof fixedValue === 'boolean' ? true : null,
+        value,
+        valid: null,
       });
     });
 
@@ -144,26 +127,22 @@ function Index() {
   // Update the query.
   useEffect(() => {
     // Wait for a valid Zip Code before doing anything.
-    if (
-      state.fields.zipCode.valid === false
-      || state.fields.limit.valid === false
-      || state.fields.ticketing.valid === false
-    ) {
+    if (state.valid === false) {
       return;
     }
 
+    const { zipCode, limit, ticketing } = state.fields; 
+
     query.next({
-      zipCode: state.fields.zipCode.value,
-      limit: state.fields.limit.value,
-      ticketing: state.fields.ticketing.value,
+      zipCode,
+      limit,
+      ticketing,
     });
   }, [
-    state.fields.zipCode.value,
-    state.fields.zipCode.valid,
-    state.fields.limit.value,
-    state.fields.limit.valid,
-    state.fields.ticketing.value,
-    state.fields.ticketing.valid,
+    state.valid,
+    state.fields.zipCode,
+    state.fields.limit,
+    state.fields.ticketing,
   ]);
 
   // Update the route.
@@ -175,8 +154,8 @@ function Index() {
 
     const searchParams = new URLSearchParams();
     Object.keys(state.fields).forEach((name) => {
-      if (state.fields[name].value !== initialState.fields[name].value) {
-        searchParams.set(name, state.fields[name].value);
+      if (state.fields[name] !== initialState.fields[name] && state.fields[name] !== '') {
+        searchParams.set(name, state.fields[name]);
       } else {
         searchParams.delete(name);
       }
@@ -185,9 +164,11 @@ function Index() {
     const search = searchParams.toString();
     Router.replace(search ? `/?${search}` : '/');
   }, [
-    state.fields.zipCode.value,
-    state.fields.limit.value,
-    state.fields.ticketing.value,
+    state.fields.zipCode,
+    state.fields.limit,
+    state.fields.ticketing,
+    state.fields.startDate,
+    state.fields.endDate,
   ]);
 
   const showtimes = [...(state.result || [])].filter(({ offers }) => (
@@ -250,7 +231,7 @@ function Index() {
 
   return (
     <Layout>
-      <form onSubmit={e => e.preventDefault()}>
+      <form ref={formRef} onSubmit={e => e.preventDefault()}>
         <div className="row form-group">
           <label className="col-auto col-form-label" htmlFor="zipCode">Zip Code</label>
           <div className="col-md col-12">
@@ -262,7 +243,7 @@ function Index() {
               min="0"
               max="99999"
               required
-              value={state.fields.zipCode.value}
+              value={state.fields.zipCode}
               onChange={handleChange}
             />
           </div>
@@ -274,7 +255,7 @@ function Index() {
               id="limit"
               name="limit"
               min="0"
-              value={state.fields.limit.value}
+              value={state.fields.limit}
               onChange={handleChange}
             />
           </div>
@@ -285,13 +266,41 @@ function Index() {
               options={ticketingOptions}
               className="select-container"
               classNamePrefix="select"
-              value={ticketingOptions.find(({ value }) => value === state.fields.ticketing.value)}
+              value={ticketingOptions.find(({ value }) => value === state.fields.ticketing)}
               onChange={({ value }) => dispatch({
                 type: 'change',
                 name: 'ticketing',
                 value,
                 valid: null,
               })}
+            />
+          </div>
+        </div>
+        <div className="row form-group">
+          <label className="col-auto col-form-label" htmlFor="startDate">Start Date</label>
+          <div className="col-md col-12">
+            <input
+              className="form-control"
+              type="date"
+              id="startDate"
+              name="startDate"
+              min={DateTime.local().toFormat('yyyy-MM-dd')}
+              value={state.fields.startDate}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <label className="col-auto col-form-label" htmlFor="endDate">End Date</label>
+          <div className="col-md col-12">
+            <input
+              className="form-control"
+              type="date"
+              id="endDate"
+              name="endDate"
+              min={state.fields.startDate}
+              value={state.fields.endDate}
+              onChange={handleChange}
+              required
             />
           </div>
         </div>

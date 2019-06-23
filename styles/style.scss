@@ -10,6 +10,7 @@ $input-bg: transparent;
 $input-border-color: $secondary;
 $input-color: $body-color;
 $dropdown-link-color: $body-color;
+$input-color-placeholder: darken($body-bg, 50%);
 
 @import "~bootstrap/scss/_variables";
 
