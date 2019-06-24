@@ -59,11 +59,15 @@ const query = (new Subject()).pipe(
     const url = new URL('https://cinematix.app/api/showtimes');
     url.searchParams.set('zipCode', zipCode);
 
-    ['limit', 'ticketing', 'startDate'].forEach((field) => {
+    ['limit', 'ticketing'].forEach((field) => {
       if (q[field] !== initialState.fields[field]) {
         url.searchParams.set(field, q[field]);
       }
     });
+
+    // Always set the start date to ensure the correct results are returned.
+    // They might not be correct because of timezones. :(
+    url.searchParams.set('startDate', q.startDate);
 
     // @TODO handle an error!
     return ajax.getJSON(url.toString());
@@ -136,7 +140,7 @@ function Index() {
       limit,
       ticketing,
       startDate,
-    } = state.fields; 
+    } = state.fields;
 
     query.next({
       zipCode,
