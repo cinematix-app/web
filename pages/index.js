@@ -272,6 +272,7 @@ function Index() {
           <label className="col-auto col-form-label" htmlFor="ticketing">Ticketing</label>
           <div className="col-md col-12">
             <Select
+              inputId="ticketing"
               name="ticketing"
               options={ticketingOptions}
               className="select-container"
