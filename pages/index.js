@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef } from 'react';
+import { useReducer, useEffect, useRef, useMemo } from 'react';
 import Router from 'next/router';
 import { Subject } from 'rxjs';
 import { switchMap, flatMap, distinctUntilChanged } from 'rxjs/operators';
@@ -13,7 +13,7 @@ const initialState = {
     zipCode: '',
     limit: '10',
     ticketing: 'both',
-    startDate: DateTime.local().toFormat('yyyy-MM-dd'),
+    startDate: 'today',
   },
   valid: false,
   result: [],
@@ -67,7 +67,17 @@ const query = (new Subject()).pipe(
 
     // Always set the start date to ensure the correct results are returned.
     // They might not be correct because of timezones. :(
-    url.searchParams.set('startDate', q.startDate);
+    switch (q.startDate) {
+      case 'today':
+        url.searchParams.set('startDate', DateTime.local().toFormat('yyyy-MM-dd'));
+        break;
+      case 'tomorrow':
+        url.searchParams.set('startDate', DateTime.local().plus({ days: 1 }).toFormat('yyyy-MM-dd'));
+        break;
+      default:
+        url.searchParams.set('startDate', q.startDate);
+        break;
+    }
 
     // @TODO handle an error!
     return ajax.getJSON(url.toString());
@@ -104,19 +114,21 @@ function Index() {
 
   // Update the query
   // @TODO Pass this in with server rendering!
-  if (!state.searchParsed && typeof window !== 'undefined') {
-    const url = new URL(window.location.href);
-    url.searchParams.forEach((value, name) => {
-      dispatch({
-        type: 'change',
-        name,
-        value,
-        valid: null,
+  useEffect(() => {
+    if (!state.searchParsed && typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.forEach((value, name) => {
+        dispatch({
+          type: 'change',
+          name,
+          value,
+          valid: null,
+        });
       });
-    });
-
-    dispatch({ type: 'searchParsed' });
-  }
+  
+      dispatch({ type: 'searchParsed' });
+    }
+  }, []);
 
   // Subscribe the query changes and dispatch the results.
   useEffect(() => {
@@ -181,7 +193,10 @@ function Index() {
     state.fields.startDate,
   ]);
 
-  const showtimes = [...(state.result || [])].filter(({ offers }) => (
+  const now = DateTime.local();
+  const today = now.toFormat('yyyy-MM-dd');
+
+  const showtimes = useMemo(() => [...(state.result || [])].filter(({ offers }) => (
     offers.availability !== 'https://schema.org/Discontinued'
   )).sort((a, b) => (
     // @TODO make the sort configurable.
@@ -222,6 +237,16 @@ function Index() {
       ];
     }
 
+    const startDate = DateTime.fromISO(showtime.startDate);
+    const longFormat = {
+      month: 'long',
+      weekday: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+    };
+    const timeFormat = startDate > now.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
+
     return (
       <div key={showtime['@id']} className="row mb-2">
         <div className="col-md-4">
@@ -232,12 +257,20 @@ function Index() {
         </div>
         <div className="col-md-4">
           <a className={className.join(' ')} href={showtime.offers.url}>
-            {DateTime.fromISO(showtime.startDate).toLocaleString(DateTime.TIME_SIMPLE)}
+            <time dateTime={startDate.toISO()}>
+              {startDate.toLocaleString(timeFormat)}
+            </time>
           </a>
         </div>
       </div>
     );
-  });
+  }), [
+    state.result,
+  ]);
+
+  const customStartDate = !['today', 'tomorrow'].includes(state.fields.startDate);
+
+  const dayAfterTomorrow = now.plus({ days: 2 }).toFormat('yyyy-MM-dd');
 
   return (
     <Layout>
@@ -250,7 +283,7 @@ function Index() {
               type="number"
               id="zipCode"
               name="zipCode"
-              min="0"
+              min="501"
               max="99999"
               required
               value={state.fields.zipCode}
@@ -289,14 +322,22 @@ function Index() {
         </div>
         <div className="row form-group">
           <label className="col-auto col-form-label" htmlFor="startDate">Date</label>
-          <div className="col-md col-12">
+          <div className="input-group col-md col-12">
+            <div className="input-group-prepend">
+              <div className="btn-group" role="group">
+                <button type="button" name="startDate" value="today" onClick={handleChange} aria-pressed={state.fields.startDate === 'today'} className={['btn', 'btn-outline-secondary', state.fields.startDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
+                <button type="button" name="startDate" value="tomorrow" onClick={handleChange} aria-pressed={state.fields.startDate === 'tomorrow'} className={['btn', 'btn-outline-secondary', state.fields.startDate === 'tomorrow' ? 'active' : ''].join(' ')}>Tomorrow</button>
+                <button type="button" name="startDate" value={dayAfterTomorrow} onClick={handleChange} aria-pressed={customStartDate} className={['btn', 'btn-outline-secondary', 'rounded-0', customStartDate ? 'active' : ''].join(' ')}>Other</button>
+              </div>
+            </div>
             <input
               className="form-control"
               type="date"
               id="startDate"
               name="startDate"
-              min={DateTime.local().toFormat('yyyy-MM-dd')}
-              value={state.fields.startDate}
+              min={today}
+              value={customStartDate ? state.fields.startDate : ''}
+              disabled={!customStartDate}
               onChange={handleChange}
               required
             />
