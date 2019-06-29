@@ -321,10 +321,30 @@ function Index() {
 
   const dayAfterTomorrow = now.plus({ days: 2 }).toFormat('yyyy-MM-dd');
 
-  const movieOptions = useMemo(() => state.movies.map(movie => ({
-    label: movie.name,
-    value: movie['@id'].split('/').pop(),
-  })), [state.movies]);
+  const movieOptions = useMemo(() => {
+    const movies = state.movies.map(movie => ({
+      label: movie.name,
+      value: movie['@id'].split('/').pop(),
+    }));
+
+    // Ensure that all of the values are in the options, if not, add them.
+    return [
+      ...movies,
+      ...state.fields.movies.reduce((acc, id) => {
+        if (movies.find(m => m.value === id)) {
+          return acc;
+        }
+
+        return [
+          ...acc,
+          {
+            label: id,
+            value: id,
+          },
+        ];
+      }, []),
+    ];
+  }, [state.movies, state.fields.movies]);
 
   return (
     <Layout>
