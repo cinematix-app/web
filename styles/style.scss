@@ -101,7 +101,7 @@ input[disabled] {
         border-color: $input-border-color;
         border-style: solid;
         margin: 0;
-        z-index: 2;
+        z-index: 10;
     }
     .select__menu-list {
         padding: 0;
