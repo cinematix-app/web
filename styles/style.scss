@@ -36,7 +36,12 @@ input[disabled] {
     opacity: 0.3;
 }
 
+.input-group-prepend label {
+    color: $dropdown-link-hover-color;
+}
+
 .select-container {
+    display: flex;
     flex: 1 1 auto;
 
     &.rounded-0 .select__control {
@@ -48,6 +53,8 @@ input[disabled] {
     }
 
     .select__control {
+        flex-grow: 1;
+        align-self: stretch;
         border-color: $input-border-color;
         background-color: $input-bg;
         &:hover {
@@ -59,6 +66,7 @@ input[disabled] {
         }
 
     }
+ 
     .select__input {
         color: $input-color;
     }
@@ -93,6 +101,7 @@ input[disabled] {
         border-color: $input-border-color;
         border-style: solid;
         margin: 0;
+        z-index: 2;
     }
     .select__menu-list {
         padding: 0;

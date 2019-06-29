@@ -16,10 +16,13 @@ const initialState = {
     startDate: 'today',
     movie: 'include',
     movies: [],
+    amenitiesInclude: [],
+    amenitiesExclude: [],
   },
   valid: false,
   showtimes: [],
   movies: [],
+  amenities: [],
   searchParsed: false,
 };
 
@@ -52,15 +55,10 @@ function reducer(state, action) {
         },
         valid: action.valid,
       };
-    case 'movies':
+    case 'result':
       return {
         ...state,
-        movies: mergeList(state.movies, action.result),
-      };
-    case 'showtimes':
-      return {
-        ...state,
-        showtimes: action.result,
+        [action.name]: action.strategy === 'replace' ? action.result : mergeList(state[action.name], action.result),
       };
     case 'searchParsed':
       return {
@@ -70,6 +68,31 @@ function reducer(state, action) {
     default:
       throw new Error();
   }
+}
+
+function getOptions(list, field) {
+  const items = list.map(item => ({
+    label: item.name,
+    value: item['@id'].split('/').pop(),
+  }));
+
+  // Ensure that all of the values are in the options, if not, add them.
+  return [
+    ...items,
+    ...field.reduce((acc, id) => {
+      if (items.find(i => i.value === id)) {
+        return acc;
+      }
+
+      return [
+        ...acc,
+        {
+          label: id,
+          value: id,
+        },
+      ];
+    }, []),
+  ];
 }
 
 const query = (new Subject()).pipe(
@@ -121,6 +144,7 @@ async function resultFilter(result, type) {
   return data['@graph'] || [];
 }
 
+
 const ticketingOptions = [
   { value: 'both', label: 'Both' },
   { value: 'online', label: 'Online' },
@@ -138,6 +162,26 @@ function Index() {
       value: target.type === 'checkbox' ? target.checked : target.value,
       valid: formRef.current ? formRef.current.checkValidity() : null,
     });
+  };
+
+  const handleListChange = list => (
+    data => dispatch({
+      type: 'change',
+      name: list,
+      value: data ? data.map(({ value }) => value) : [],
+      valid: null,
+    })
+  );
+
+  const dispatchResult = async (data, type, name, strategy) => {
+    const result = await resultFilter(data, type);
+
+    dispatch({
+      type: 'result',
+      name,
+      strategy,
+      result,
+    })
   };
 
   // Update the query
@@ -165,20 +209,9 @@ function Index() {
   // Subscribe the query changes and dispatch the results.
   useEffect(() => {
     query.subscribe((data) => {
-      resultFilter(data, 'ScreeningEvent').then(result => (
-        console.log('RESULT', result) ||
-        dispatch({
-          type: 'showtimes',
-          result,
-        })
-      ));
-
-      resultFilter(data, 'Movie').then(result => (
-        dispatch({
-          type: 'movies',
-          result,
-        })
-      ));
+      dispatchResult(data, 'ScreeningEvent', 'showtimes', 'replace');
+      dispatchResult(data, 'Movie', 'movies', 'merge');
+      dispatchResult(data, 'LocationFeatureSpecification', 'amenities', 'merge');
     });
   }, []);
 
@@ -240,13 +273,15 @@ function Index() {
     state.fields.startDate,
     state.fields.movie,
     state.fields.movies,
+    state.fields.amenitiesInclude,
+    state.fields.amenitiesExclude,
   ]);
 
   const now = DateTime.local();
   const today = now.toFormat('yyyy-MM-dd');
 
   const showtimes = useMemo(() => [...(state.showtimes || [])]
-    .filter(({ offers, workPresented }) => {
+    .filter(({ offers, workPresented, location }) => {
       if (offers.availability === 'https://schema.org/Discontinued') {
         return false;
       }
@@ -258,6 +293,30 @@ function Index() {
           return false;
         }
         if (state.fields.movie === 'include' && !match) {
+          return false;
+        }
+      }
+
+      if (state.fields.amenitiesInclude.length !== 0) {
+        if (!location.amenityFeature) {
+          return false;
+        }
+    
+        const match = state.fields.amenitiesInclude.find(id => (
+          location.amenityFeature.find(a => a['@id'].split('/').pop() === id)
+        ));
+
+        if (!match) {
+          return false;
+        }
+      }
+
+      if (location.amenityFeature && state.fields.amenitiesExclude.length !== 0) {
+        const match = state.fields.amenitiesExclude.find(id => (
+          location.amenityFeature.find(a => a['@id'].split('/').pop() === id)
+        ));
+
+        if (match) {
           return false;
         }
       }
@@ -333,36 +392,17 @@ function Index() {
     state.showtimes,
     state.fields.movie,
     state.fields.movies,
+    state.fields.amenitiesInclude,
+    state.fields.amenitiesExclude,
   ]);
 
   const customStartDate = !['today', 'tomorrow'].includes(state.fields.startDate);
 
   const dayAfterTomorrow = now.plus({ days: 2 }).toFormat('yyyy-MM-dd');
 
-  const movieOptions = useMemo(() => {
-    const movies = state.movies.map(movie => ({
-      label: movie.name,
-      value: movie['@id'].split('/').pop(),
-    }));
-
-    // Ensure that all of the values are in the options, if not, add them.
-    return [
-      ...movies,
-      ...state.fields.movies.reduce((acc, id) => {
-        if (movies.find(m => m.value === id)) {
-          return acc;
-        }
-
-        return [
-          ...acc,
-          {
-            label: id,
-            value: id,
-          },
-        ];
-      }, []),
-    ];
-  }, [state.movies, state.fields.movies]);
+  const movieOptions = useMemo(() => getOptions(state.movies, state.fields.movies), [state.movies, state.fields.movies]);
+  const amenitiesIncludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesInclude), [state.amenities, state.fields.amenitiesInclude]);
+  const amenitiesExcludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesExclude), [state.amenities, state.fields.amenitiesExclude]);
 
   return (
     <Layout>
@@ -435,6 +475,38 @@ function Index() {
             />
           </div>
         </div>
+        {/* @TODO Put the theater filter here. */}
+        <div className="row form-group">
+          <span className="col-auto col-form-label" htmlFor="amenities">Amenities</span>
+          <div className="input-group col-md col-12 flex-nowrap align-items-stretch">
+            <div className="input-group-prepend">
+              <label className="input-group-text" htmlFor="amenitiesInclude">Include</label>
+            </div>
+            <Select
+              inputId="amenitiesInclude"
+              name="amenitiesInclude"
+              options={amenitiesIncludeOptions}
+              className={['select-container', 'rounded-0', 'rounded-right', 'w-50', 'align-self-stretch'].join(' ')}
+              classNamePrefix="select"
+              value={state.fields.amenitiesInclude.map(id => amenitiesIncludeOptions.find(({ value }) => id === value))}
+              onChange={handleListChange('amenitiesInclude')}
+              isMulti
+            />
+            <div className="input-group-prepend">
+              <label className="input-group-text" htmlFor="amenitiesExclude">Exclude</label>
+            </div>
+            <Select
+              inputId="amenitiesExclude"
+              name="amenitiesExclude"
+              options={amenitiesIncludeOptions}
+              className={['select-container', 'rounded-0', 'rounded-right', 'w-50', 'align-self-stretch'].join(' ')}
+              classNamePrefix="select"
+              value={state.fields.amenitiesExclude.map(id => amenitiesExcludeOptions.find(({ value }) => id === value))}
+              onChange={handleListChange('amenitiesExclude')}
+              isMulti
+            />
+          </div>
+        </div>
         <div className="row form-group">
           <label className="col-auto col-form-label" htmlFor="movies">Movies</label>
           <div className="input-group col-md col-12 flex-nowrap">
@@ -451,12 +523,7 @@ function Index() {
               className={['select-container', 'rounded-0', 'rounded-right'].join(' ')}
               classNamePrefix="select"
               value={state.fields.movies.map(id => movieOptions.find(({ value }) => id === value))}
-              onChange={data => dispatch({
-                type: 'change',
-                name: 'movies',
-                value: data ? data.map(({ value }) => value) : [],
-                valid: null,
-              })}
+              onChange={handleListChange('movies')}
               isMulti
             />
           </div>
