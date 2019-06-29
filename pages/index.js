@@ -1,7 +1,7 @@
 import { useReducer, useEffect, useRef, useMemo } from 'react';
 import Router from 'next/router';
 import { Subject } from 'rxjs';
-import { switchMap, flatMap, distinctUntilChanged } from 'rxjs/operators';
+import { switchMap, distinctUntilChanged } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime } from 'luxon';
 import { frame } from 'jsonld';
@@ -14,9 +14,12 @@ const initialState = {
     limit: '10',
     ticketing: 'both',
     startDate: 'today',
+    movie: 'include',
+    movies: [],
   },
   valid: false,
-  result: [],
+  showtimes: [],
+  movies: [],
   searchParsed: false,
 };
 
@@ -31,11 +34,15 @@ function reducer(state, action) {
         },
         valid: action.valid,
       };
-    case 'result':
-
+    case 'movies':
       return {
         ...state,
-        result: action.result,
+        movies: action.result,
+      };
+    case 'showtimes':
+      return {
+        ...state,
+        showtimes: action.result,
       };
     case 'searchParsed':
       return {
@@ -82,16 +89,19 @@ const query = (new Subject()).pipe(
     // @TODO handle an error!
     return ajax.getJSON(url.toString());
   }),
-  flatMap(data => (
-    frame(data, {
-      '@context': {
-        '@vocab': 'https://schema.org/',
-        cinematix: 'https://cinematix.app/',
-      },
-      '@type': 'ScreeningEvent',
-    }).then(result => result['@graph'] || [])
-  )),
 );
+
+async function resultFilter(result, type) {
+  const data = await frame(result, {
+    '@context': {
+      '@vocab': 'https://schema.org/',
+      cinematix: 'https://cinematix.app/',
+    },
+    '@type': type,
+  });
+
+  return data['@graph'] || [];
+}
 
 const ticketingOptions = [
   { value: 'both', label: 'Both' },
@@ -117,11 +127,15 @@ function Index() {
   useEffect(() => {
     if (!state.searchParsed && typeof window !== 'undefined') {
       const url = new URL(window.location.href);
-      url.searchParams.forEach((value, name) => {
+      [...url.searchParams.keys()].forEach((name) => {
+        if (typeof initialState.fields[name] === 'undefined') {
+          return;
+        }
+      
         dispatch({
           type: 'change',
           name,
-          value,
+          value: Array.isArray(initialState.fields[name]) ? url.searchParams.getAll(name) : url.searchParams.get(name),
           valid: null,
         });
       });
@@ -132,11 +146,21 @@ function Index() {
 
   // Subscribe the query changes and dispatch the results.
   useEffect(() => {
-    query.subscribe((result) => {
-      dispatch({
-        type: 'result',
-        result,
-      });
+    query.subscribe((data) => {
+      resultFilter(data, 'ScreeningEvent').then(result => (
+        console.log('RESULT', result) ||
+        dispatch({
+          type: 'showtimes',
+          result,
+        })
+      ));
+
+      resultFilter(data, 'Movie').then(result => (
+        dispatch({
+          type: 'movies',
+          result,
+        })
+      ));
     });
   }, []);
 
@@ -178,7 +202,12 @@ function Index() {
     const searchParams = new URLSearchParams();
     Object.keys(state.fields).forEach((name) => {
       if (state.fields[name] !== initialState.fields[name] && state.fields[name] !== '') {
-        searchParams.set(name, state.fields[name]);
+        if (Array.isArray(state.fields[name])) {
+          searchParams.delete(name);
+          state.fields[name].forEach(v => searchParams.append(name, v));
+        } else {
+          searchParams.set(name, state.fields[name]);
+        }
       } else {
         searchParams.delete(name);
       }
@@ -191,86 +220,111 @@ function Index() {
     state.fields.limit,
     state.fields.ticketing,
     state.fields.startDate,
+    state.fields.movie,
+    state.fields.movies,
   ]);
 
   const now = DateTime.local();
   const today = now.toFormat('yyyy-MM-dd');
 
-  const showtimes = useMemo(() => [...(state.result || [])].filter(({ offers }) => (
-    offers.availability !== 'https://schema.org/Discontinued'
-  )).sort((a, b) => (
-    // @TODO make the sort configurable.
-    DateTime.fromISO(a.startDate) - DateTime.fromISO(b.startDate)
-  )).map((showtime) => {
-    let movieDisplay;
-    if (showtime.workPresented) {
-      movieDisplay = (
-        <a href={showtime.workPresented.url}>
-          {showtime.workPresented.name}
-        </a>
-      );
-    }
-    
-    let theaterDisplay;
-    if (showtime.location) {
-      theaterDisplay = (
-        <a href={showtime.location.url}>
-          {showtime.location.name}
-        </a>
-      );
-    }
+  const showtimes = useMemo(() => [...(state.showtimes || [])]
+    .filter(({ offers, workPresented }) => {
+      if (offers.availability === 'https://schema.org/Discontinued') {
+        return false;
+      }
 
-    let className = [
-      'btn',
-      'btn-block',
-    ];
-    if (showtime.offers.availability === 'https://schema.org/InStock') {
-      className = [
-        ...className,
-        'btn-outline-primary',
-      ];
-    } else {
-      className = [
-        ...className,
-        'btn-outline-secondary',
-        'disabled',
-      ];
-    }
+      if (state.fields.movies.length !== 0) {
+        const match = state.fields.movies.includes(workPresented['@id'].split('/').pop());
 
-    const startDate = DateTime.fromISO(showtime.startDate);
-    const longFormat = {
-      month: 'long',
-      weekday: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-    };
-    const timeFormat = startDate > now.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
+        if (state.fields.movie === 'exclude' && match) {
+          return false;
+        }
+        if (state.fields.movie === 'include' && !match) {
+          return false;
+        }
+      }
 
-    return (
-      <div key={showtime['@id']} className="row mb-2">
-        <div className="col-md-4">
-          {movieDisplay}
-        </div>
-        <div className="col-md-4">
-          {theaterDisplay}
-        </div>
-        <div className="col-md-4">
-          <a className={className.join(' ')} href={showtime.offers.url}>
-            <time dateTime={startDate.toISO()}>
-              {startDate.toLocaleString(timeFormat)}
-            </time>
+      return true;
+    }).sort((a, b) => (
+      // @TODO make the sort configurable.
+      DateTime.fromISO(a.startDate) - DateTime.fromISO(b.startDate)
+    )).map((showtime) => {
+      let movieDisplay;
+      if (showtime.workPresented) {
+        movieDisplay = (
+          <div className="col-md-4">
+            <a href={showtime.workPresented.url}>
+              {showtime.workPresented.name}
+            </a>
+          </div>
+        );
+      }
+
+      let theaterDisplay;
+      if (showtime.location) {
+        theaterDisplay = (
+          <a href={showtime.location.url}>
+            {showtime.location.name}
           </a>
+        );
+      }
+
+      let className = [
+        'btn',
+        'btn-block',
+      ];
+      if (showtime.offers.availability === 'https://schema.org/InStock') {
+        className = [
+          ...className,
+          'btn-outline-primary',
+        ];
+      } else {
+        className = [
+          ...className,
+          'btn-outline-secondary',
+          'disabled',
+        ];
+      }
+
+      const startDate = DateTime.fromISO(showtime.startDate);
+      const longFormat = {
+        month: 'long',
+        weekday: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+      };
+      const timeFormat = startDate > now.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
+
+      return (
+        <div key={showtime['@id']} className="row mb-2">
+          {movieDisplay}
+          <div className="col-md-4">
+            {theaterDisplay}
+          </div>
+          <div className="col-md-4">
+            <a className={className.join(' ')} href={showtime.offers.url}>
+              <time dateTime={startDate.toISO()}>
+                {startDate.toLocaleString(timeFormat)}
+              </time>
+            </a>
+          </div>
         </div>
-      </div>
-    );
-  }), [
-    state.result,
+      );
+    }), [
+    state.showtimes,
+    state.fields.movie,
+    state.fields.movies,
   ]);
 
   const customStartDate = !['today', 'tomorrow'].includes(state.fields.startDate);
 
   const dayAfterTomorrow = now.plus({ days: 2 }).toFormat('yyyy-MM-dd');
+
+  const movieOptions = useMemo(() => state.movies.map(movie => ({
+    label: movie.name,
+    value: movie['@id'].split('/').pop(),
+  })), [state.movies]);
 
   return (
     <Layout>
@@ -322,7 +376,7 @@ function Index() {
         </div>
         <div className="row form-group">
           <label className="col-auto col-form-label" htmlFor="startDate">Date</label>
-          <div className="input-group col-md col-12">
+          <div className="input-group col-md col-12 flex-nowrap">
             <div className="input-group-prepend">
               <div className="btn-group" role="group">
                 <button type="button" name="startDate" value="today" onClick={handleChange} aria-pressed={state.fields.startDate === 'today'} className={['btn', 'btn-outline-secondary', state.fields.startDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
@@ -340,6 +394,32 @@ function Index() {
               disabled={!customStartDate}
               onChange={handleChange}
               required
+            />
+          </div>
+        </div>
+        <div className="row form-group">
+          <label className="col-auto col-form-label" htmlFor="movies">Movies</label>
+          <div className="input-group col-md col-12 flex-nowrap">
+            <div className="input-group-prepend">
+              <div className="btn-group" role="group">
+                <button type="button" name="movie" value="include" onClick={handleChange} aria-pressed={state.fields.movie === 'include'} className={['btn', 'btn-outline-secondary', state.fields.movie === 'include' ? 'active' : ''].join(' ')}>Include</button>
+                <button type="button" name="movie" value="exclude" onClick={handleChange} aria-pressed={state.fields.movie === 'exclude'} className={['btn', 'btn-outline-secondary', 'rounded-0', state.fields.movie === 'exclude' ? 'active' : ''].join(' ')}>Exclude</button>
+              </div>
+            </div>
+            <Select
+              inputId="movies"
+              name="movies"
+              options={movieOptions}
+              className={['select-container', 'rounded-0', 'rounded-right'].join(' ')}
+              classNamePrefix="select"
+              value={state.fields.movies.map(id => movieOptions.find(({ value }) => id === value))}
+              onChange={data => dispatch({
+                type: 'change',
+                name: 'movies',
+                value: data ? data.map(({ value }) => value) : [],
+                valid: null,
+              })}
+              isMulti
             />
           </div>
         </div>

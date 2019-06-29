@@ -37,6 +37,16 @@ input[disabled] {
 }
 
 .select-container {
+    flex: 1 1 auto;
+
+    &.rounded-0 .select__control {
+        @extend .rounded-0;
+    }
+
+    &.rounded-right .select__control {
+        @extend .rounded-right;
+    }
+
     .select__control {
         border-color: $input-border-color;
         background-color: $input-bg;
@@ -49,7 +59,26 @@ input[disabled] {
         }
 
     }
-    .select__single-value {
+    .select__input {
+        color: $input-color;
+    }
+    .select__single-value,
+    .select__multi-value {
+        color: $input-color;
+    }
+    .select__multi-value__remove {
+        @extend .rounded-0;
+        @extend .rounded-right;
+        &:hover {
+            color: $dropdown-link-hover-color;
+            background-color: $dropdown-link-hover-bg;
+        }
+    }
+    .select__multi-value {
+        background-color: $input-bg;
+        border: $input-border-width solid $input-border-color;
+    }
+    .select__multi-value__label {
         color: $input-color;
     }
     .select__dropdown-indicator svg path {
