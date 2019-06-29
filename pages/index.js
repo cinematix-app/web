@@ -23,6 +23,24 @@ const initialState = {
   searchParsed: false,
 };
 
+/**
+ * Take an existing list and a new list and merge them updating
+ * the existing items and adding new items, but not discarding anything.
+ *
+ * @param {array} existingList
+ * @param {array} newList
+ *
+ * @return {array}
+ */
+function mergeList(existingList, newList) {
+  const map = new Map();
+
+  existingList.forEach(item => map.set(item['@id'], item));
+  newList.forEach(item => map.set(item['@id'], item));
+
+  return [...map.values()];
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case 'change':
@@ -37,7 +55,7 @@ function reducer(state, action) {
     case 'movies':
       return {
         ...state,
-        movies: action.result,
+        movies: mergeList(state.movies, action.result),
       };
     case 'showtimes':
       return {
