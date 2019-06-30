@@ -1,7 +1,7 @@
 import { useReducer, useEffect, useRef, useMemo } from 'react';
 import Router from 'next/router';
-import { Subject } from 'rxjs';
-import { switchMap, distinctUntilChanged } from 'rxjs/operators';
+import { Subject, EMPTY } from 'rxjs';
+import { switchMap, distinctUntilChanged, catchError, tap } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime } from 'luxon';
 import { frame } from 'jsonld';
@@ -27,6 +27,8 @@ const initialState = {
   amenities: [],
   features: [],
   searchParsed: false,
+  status: 'waiting',
+  error: null,
 };
 
 /**
@@ -61,7 +63,22 @@ function reducer(state, action) {
     case 'result':
       return {
         ...state,
-        [action.name]: action.strategy === 'replace' ? action.result : mergeList(state[action.name], action.result),
+        status: 'ready',
+        showtimes: action.showtimes,
+        movies: mergeList(state.movies, action.movies),
+        amenities: mergeList(state.amenities, action.amenities),
+        features: mergeList(state.features, action.features),
+      };
+    case 'status':
+      return {
+        ...state,
+        status: action.status,
+      };
+    case 'error':
+      return {
+        ...state,
+        status: 'error',
+        error: action.error,
       };
     case 'searchParsed':
       return {
@@ -105,7 +122,7 @@ const query = (new Subject()).pipe(
     && z.ticketing === y.ticketing
     && z.startDate === y.startDate
   )),
-  switchMap((q) => {
+  switchMap(({ dispatch, ...q }) => {
     const zipCode = q.zipCode.padStart(5, '0');
     const url = new URL('https://cinematix.app/api/showtimes');
     url.searchParams.set('zipCode', zipCode);
@@ -130,8 +147,18 @@ const query = (new Subject()).pipe(
         break;
     }
 
+    dispatch({
+      type: 'status',
+      status: 'fetching',
+    });
+
     // @TODO handle an error!
-    return ajax.getJSON(url.toString());
+    return ajax.getJSON(url.toString()).pipe(
+      catchError((error) => {
+        dispatch({ type: 'error', error });
+        return EMPTY;
+      }),
+    );
   }),
 );
 
@@ -216,17 +243,6 @@ function Index() {
     })
   );
 
-  const dispatchResult = async (data, type, name, strategy) => {
-    const result = await resultFilter(data, type);
-
-    dispatch({
-      type: 'result',
-      name,
-      strategy,
-      result,
-    })
-  };
-
   // Update the query
   // @TODO Pass this in with server rendering!
   useEffect(() => {
@@ -251,34 +267,36 @@ function Index() {
 
   // Subscribe the query changes and dispatch the results.
   useEffect(() => {
-    query.subscribe((data) => {
-      dispatchResult(data, 'ScreeningEvent', 'showtimes', 'replace');
-      dispatchResult(data, 'Movie', 'movies', 'merge');
-      dispatchResult(data, 'LocationFeatureSpecification', 'amenities', 'merge');
+    query.subscribe(async (data) => {
+      const [showtimes, movies, amenities, products] = await Promise.all([
+        resultFilter(data, 'ScreeningEvent'),
+        resultFilter(data, 'Movie'),
+        resultFilter(data, 'LocationFeatureSpecification'),
+        resultFilter(data, 'Product'),
+      ]);
 
-      resultFilter(data, 'Product').then((result) => {
-        const features = new Map();
+      const properties = new Map();
 
-        result.forEach(({ additionalProperty }) => {
-          if (!additionalProperty) {
-            return;
-          }
+      products.forEach(({ additionalProperty }) => {
+        if (!additionalProperty) {
+          return;
+        }
 
-          if (Array.isArray(additionalProperty)) {
-            additionalProperty.forEach((property) => {
-              features.set(property['@id'], property);
-            });
-          } else {
-            features.set(additionalProperty['@id'], additionalProperty);
-          }
-        });
+        if (Array.isArray(additionalProperty)) {
+          additionalProperty.forEach((property) => {
+            properties.set(property['@id'], property);
+          });
+        } else {
+          properties.set(additionalProperty['@id'], additionalProperty);
+        }
+      });
 
-        dispatch({
-          type: 'result',
-          name: 'features',
-          strategy: 'merge',
-          result: [...features.values()],
-        });
+      dispatch({
+        type: 'result',
+        showtimes,
+        movies,
+        amenities,
+        features: [...properties.values()],
       });
     });
   }, []);
@@ -302,6 +320,7 @@ function Index() {
       limit,
       ticketing,
       startDate,
+      dispatch,
     });
   }, [
     state.valid,
@@ -350,8 +369,16 @@ function Index() {
   const now = DateTime.local();
   const today = now.toFormat('yyyy-MM-dd');
 
-  const showtimes = useMemo(() => [...(state.showtimes || [])]
-    .filter(({ offers, workPresented, location }) => {
+  const showtimes = useMemo(() => {
+    if (state.status === 'error') {
+      return (
+        <div className="alert alert-danger" role="alert">
+          An error occured with the request to <a href={state.error.request.url}>{state.error.request.url}</a>
+        </div>
+      );
+    }
+
+    return [...(state.showtimes || [])].filter(({ offers, workPresented, location }) => {
       if (offers.availability === 'https://schema.org/Discontinued') {
         return false;
       }
@@ -428,7 +455,7 @@ function Index() {
       const timeFormat = startDate > now.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
 
       return (
-        <div key={showtime['@id']} className="row mb-2">
+        <div key={showtime['@id']} className="row mb-2 border-bottom-1">
           {movieDisplay}
           <div className="col-md-4">
             {theaterDisplay}
@@ -442,7 +469,10 @@ function Index() {
           </div>
         </div>
       );
-    }), [
+    });
+  }, [
+    state.status,
+    state.error,
     state.showtimes,
     state.fields.movie,
     state.fields.movies,
