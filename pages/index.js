@@ -18,11 +18,14 @@ const initialState = {
     movies: [],
     amenitiesInclude: [],
     amenitiesExclude: [],
+    featuresInclude: [],
+    featuresExclude: [],
   },
   valid: false,
   showtimes: [],
   movies: [],
   amenities: [],
+  features: [],
   searchParsed: false,
 };
 
@@ -144,6 +147,46 @@ async function resultFilter(result, type) {
   return data['@graph'] || [];
 }
 
+function displayFilter(include, exclude, data) {
+  if (include.length !== 0) {
+    if (!data) {
+      return false;
+    }
+
+    const match = include.find((id) => {
+      if (Array.isArray(data)) {
+        return data.find(a => a['@id'].split('/').pop() === id);
+      }
+
+      return data['@id'].split('/').pop() === id;
+    });
+
+    if (!match) {
+      return false;
+    }
+  }
+
+  if (exclude.length !== 0) {
+    if (!data) {
+      return true;
+    }
+
+    const match = exclude.find((id) => {
+      if (Array.isArray(data)) {
+        return data.find(a => a['@id'].split('/').pop() === id);
+      }
+
+      return data['@id'].split('/').pop() === id;
+    });
+
+    if (match) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 
 const ticketingOptions = [
   { value: 'both', label: 'Both' },
@@ -212,6 +255,31 @@ function Index() {
       dispatchResult(data, 'ScreeningEvent', 'showtimes', 'replace');
       dispatchResult(data, 'Movie', 'movies', 'merge');
       dispatchResult(data, 'LocationFeatureSpecification', 'amenities', 'merge');
+
+      resultFilter(data, 'Product').then((result) => {
+        const features = new Map();
+
+        result.forEach(({ additionalProperty }) => {
+          if (!additionalProperty) {
+            return;
+          }
+
+          if (Array.isArray(additionalProperty)) {
+            additionalProperty.forEach((property) => {
+              features.set(property['@id'], property);
+            });
+          } else {
+            features.set(additionalProperty['@id'], additionalProperty);
+          }
+        });
+
+        dispatch({
+          type: 'result',
+          name: 'features',
+          strategy: 'merge',
+          result: [...features.values()],
+        });
+      });
     });
   }, []);
 
@@ -275,6 +343,8 @@ function Index() {
     state.fields.movies,
     state.fields.amenitiesInclude,
     state.fields.amenitiesExclude,
+    state.fields.featuresInclude,
+    state.fields.featuresExclude,
   ]);
 
   const now = DateTime.local();
@@ -297,28 +367,12 @@ function Index() {
         }
       }
 
-      if (state.fields.amenitiesInclude.length !== 0) {
-        if (!location.amenityFeature) {
-          return false;
-        }
-    
-        const match = state.fields.amenitiesInclude.find(id => (
-          location.amenityFeature.find(a => a['@id'].split('/').pop() === id)
-        ));
-
-        if (!match) {
-          return false;
-        }
+      if (!displayFilter(state.fields.amenitiesInclude, state.fields.amenitiesExclude, location.amenityFeature)) {
+        return false;
       }
 
-      if (location.amenityFeature && state.fields.amenitiesExclude.length !== 0) {
-        const match = state.fields.amenitiesExclude.find(id => (
-          location.amenityFeature.find(a => a['@id'].split('/').pop() === id)
-        ));
-
-        if (match) {
-          return false;
-        }
+      if (!displayFilter(state.fields.featuresInclude, state.fields.featuresExclude, offers.itemOffered.additionalProperty)) {
+        return false;
       }
 
       return true;
@@ -394,6 +448,8 @@ function Index() {
     state.fields.movies,
     state.fields.amenitiesInclude,
     state.fields.amenitiesExclude,
+    state.fields.featuresInclude,
+    state.fields.featuresExclude,
   ]);
 
   const customStartDate = !['today', 'tomorrow'].includes(state.fields.startDate);
@@ -403,6 +459,8 @@ function Index() {
   const movieOptions = useMemo(() => getOptions(state.movies, state.fields.movies), [state.movies, state.fields.movies]);
   const amenitiesIncludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesInclude), [state.amenities, state.fields.amenitiesInclude]);
   const amenitiesExcludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesExclude), [state.amenities, state.fields.amenitiesExclude]);
+  const featuresIncludeOptions = useMemo(() => getOptions(state.features, state.fields.featuresInclude), [state.features, state.fields.featuresInclude]);
+  const featuresExcludeOptions = useMemo(() => getOptions(state.features, state.fields.featuresExclude), [state.features, state.fields.featuresExclude]);
 
   return (
     <Layout>
@@ -478,7 +536,7 @@ function Index() {
         {/* @TODO Put the theater filter here. */}
         <div className="row form-group">
           <span className="col-auto col-form-label" htmlFor="amenities">Amenities</span>
-          <div className="input-group col-md col-12 flex-nowrap align-items-stretch">
+          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group flex-nowrap align-items-stretch">
             <div className="input-group-prepend">
               <label className="input-group-text" htmlFor="amenitiesInclude">Include</label>
             </div>
@@ -486,20 +544,22 @@ function Index() {
               inputId="amenitiesInclude"
               name="amenitiesInclude"
               options={amenitiesIncludeOptions}
-              className={['select-container', 'rounded-0', 'rounded-right', 'w-50', 'align-self-stretch'].join(' ')}
+              className={['select-container', 'rounded-0', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
               value={state.fields.amenitiesInclude.map(id => amenitiesIncludeOptions.find(({ value }) => id === value))}
               onChange={handleListChange('amenitiesInclude')}
               isMulti
             />
+          </div>
+          <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group flex-nowrap align-items-stretch">
             <div className="input-group-prepend">
-              <label className="input-group-text" htmlFor="amenitiesExclude">Exclude</label>
+              <label className="input-group-text rounded-0" htmlFor="amenitiesExclude">Exclude</label>
             </div>
             <Select
               inputId="amenitiesExclude"
               name="amenitiesExclude"
               options={amenitiesIncludeOptions}
-              className={['select-container', 'rounded-0', 'rounded-right', 'w-50', 'align-self-stretch'].join(' ')}
+              className={['select-container', 'rounded-left-0', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
               value={state.fields.amenitiesExclude.map(id => amenitiesExcludeOptions.find(({ value }) => id === value))}
               onChange={handleListChange('amenitiesExclude')}
@@ -520,10 +580,43 @@ function Index() {
               inputId="movies"
               name="movies"
               options={movieOptions}
-              className={['select-container', 'rounded-0', 'rounded-right'].join(' ')}
+              className={['select-container', 'rounded-left-0'].join(' ')}
               classNamePrefix="select"
               value={state.fields.movies.map(id => movieOptions.find(({ value }) => id === value))}
               onChange={handleListChange('movies')}
+              isMulti
+            />
+          </div>
+        </div>
+        <div className="row form-group">
+          <span className="col-auto col-form-label" htmlFor="features">Features</span>
+          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group flex-nowrap align-items-stretch">
+            <div className="input-group-prepend">
+              <label className="input-group-text" htmlFor="featuresInclude">Include</label>
+            </div>
+            <Select
+              inputId="featuresInclude"
+              name="featuresInclude"
+              options={featuresIncludeOptions}
+              className={['select-container', 'rounded-0', 'align-self-stretch'].join(' ')}
+              classNamePrefix="select"
+              value={state.fields.featuresInclude.map(id => featuresIncludeOptions.find(({ value }) => id === value))}
+              onChange={handleListChange('featuresInclude')}
+              isMulti
+            />
+          </div>
+          <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group flex-nowrap align-items-stretch">
+            <div className="input-group-prepend">
+              <label className="input-group-text rounded-0" htmlFor="featuresExclude">Exclude</label>
+            </div>
+            <Select
+              inputId="featuresExclude"
+              name="featuresExclude"
+              options={featuresExcludeOptions}
+              className={['select-container', 'rounded-left-0', 'align-self-stretch'].join(' ')}
+              classNamePrefix="select"
+              value={state.fields.featuresExclude.map(id => featuresExcludeOptions.find(({ value }) => id === value))}
+              onChange={handleListChange('featuresExclude')}
               isMulti
             />
           </div>
