@@ -472,7 +472,7 @@ function Index() {
       );
     });
 
-    if (!rows) {
+    if (rows.length === 0) {
       return null;
     }
 
