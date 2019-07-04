@@ -472,6 +472,10 @@ function Index() {
       );
     });
 
+    if (!rows) {
+      return null;
+    }
+
     return (
       <Fragment>
         <div className="row border-bottom d-none mb-2 d-md-flex">
@@ -487,7 +491,7 @@ function Index() {
         </div>
         {rows}
       </Fragment>
-    )
+    );
   }, [
     state.status,
     state.error,
