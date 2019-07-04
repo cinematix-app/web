@@ -1,7 +1,7 @@
-import { useReducer, useEffect, useRef, useMemo } from 'react';
+import { useReducer, useEffect, useRef, useMemo, Fragment } from 'react';
 import Router from 'next/router';
 import { Subject, EMPTY } from 'rxjs';
-import { switchMap, distinctUntilChanged, catchError, tap } from 'rxjs/operators';
+import { switchMap, distinctUntilChanged, catchError } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime } from 'luxon';
 import { frame } from 'jsonld';
@@ -45,6 +45,7 @@ function mergeList(existingList, newList) {
 
   existingList.forEach(item => map.set(item['@id'], item));
   newList.forEach(item => map.set(item['@id'], item));
+
 
   return [...map.values()];
 }
@@ -373,12 +374,12 @@ function Index() {
     if (state.status === 'error') {
       return (
         <div className="alert alert-danger" role="alert">
-          An error occured with the request to <a href={state.error.request.url}>{state.error.request.url}</a>
+          An error occured with the request to <a href={state.error.request.url} className="alert-link">{state.error.request.url}</a>
         </div>
       );
     }
 
-    return [...(state.showtimes || [])].filter(({ offers, workPresented, location }) => {
+    const rows = [...(state.showtimes || [])].filter(({ offers, workPresented, location }) => {
       if (offers.availability === 'https://schema.org/Discontinued') {
         return false;
       }
@@ -410,11 +411,9 @@ function Index() {
       let movieDisplay;
       if (showtime.workPresented) {
         movieDisplay = (
-          <div className="col-md-4">
-            <a href={showtime.workPresented.url}>
-              {showtime.workPresented.name}
-            </a>
-          </div>
+          <a href={showtime.workPresented.url}>
+            {showtime.workPresented.name}
+          </a>
         );
       }
 
@@ -455,12 +454,14 @@ function Index() {
       const timeFormat = startDate > now.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
 
       return (
-        <div key={showtime['@id']} className="row mb-2 border-bottom-1">
-          {movieDisplay}
-          <div className="col-md-4">
+        <div key={showtime['@id']} className="row align-items-center mb-2 mb-md-0">
+          <div className="col-md-4 mb-2">
+            {movieDisplay}
+          </div>
+          <div className="col-md-4 mb-2">
             {theaterDisplay}
           </div>
-          <div className="col-md-4">
+          <div className="col-md-4 mb-2">
             <a className={className.join(' ')} href={showtime.offers.url}>
               <time dateTime={startDate.toISO()}>
                 {startDate.toLocaleString(timeFormat)}
@@ -470,6 +471,23 @@ function Index() {
         </div>
       );
     });
+
+    return (
+      <Fragment>
+        <div className="row border-bottom d-none mb-2 d-md-flex">
+          <h5 className="col-md-4">
+            Movie
+          </h5>
+          <h5 className="col-md-4">
+            Theater
+          </h5>
+          <h5 className="col-md-4">
+            Showtime
+          </h5>
+        </div>
+        {rows}
+      </Fragment>
+    )
   }, [
     state.status,
     state.error,
@@ -496,7 +514,7 @@ function Index() {
     <Layout>
       <form ref={formRef} onSubmit={e => e.preventDefault()}>
         <div className="row form-group">
-          <label className="col-auto col-form-label" htmlFor="zipCode">Zip Code</label>
+          <label className="col-1 col-form-label text-nowrap" htmlFor="zipCode">Zip Code</label>
           <div className="col-md col-12">
             <input
               className="form-control"
@@ -510,7 +528,7 @@ function Index() {
               onChange={handleChange}
             />
           </div>
-          <label className="col-auto col-form-label" htmlFor="limit">Max. Theaters</label>
+          <label className="col-auto col-form-label text-nowrap" htmlFor="limit">Max. Theaters</label>
           <div className="col-md col-12">
             <input
               className="form-control"
@@ -541,8 +559,8 @@ function Index() {
           </div>
         </div>
         <div className="row form-group">
-          <label className="col-auto col-form-label" htmlFor="startDate">Date</label>
-          <div className="input-group col-md col-12 flex-nowrap">
+          <label className="col-1 col-form-label" htmlFor="startDate">Date</label>
+          <div className="input-group col-md col-12">
             <div className="input-group-prepend">
               <div className="btn-group" role="group">
                 <button type="button" name="startDate" value="today" onClick={handleChange} aria-pressed={state.fields.startDate === 'today'} className={['btn', 'btn-outline-secondary', state.fields.startDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
@@ -565,7 +583,7 @@ function Index() {
         </div>
         {/* @TODO Put the theater filter here. */}
         <div className="row form-group">
-          <span className="col-auto col-form-label" htmlFor="amenities">Amenities</span>
+          <span className="col-1 col-form-label" htmlFor="amenities">Amenities</span>
           <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group flex-nowrap align-items-stretch">
             <div className="input-group-prepend">
               <label className="input-group-text" htmlFor="amenitiesInclude">Include</label>
@@ -598,7 +616,7 @@ function Index() {
           </div>
         </div>
         <div className="row form-group">
-          <label className="col-auto col-form-label" htmlFor="movies">Movies</label>
+          <label className="col-1 col-form-label" htmlFor="movies">Movies</label>
           <div className="input-group col-md col-12 flex-nowrap">
             <div className="input-group-prepend">
               <div className="btn-group" role="group">
@@ -619,7 +637,7 @@ function Index() {
           </div>
         </div>
         <div className="row form-group">
-          <span className="col-auto col-form-label" htmlFor="features">Features</span>
+          <span className="col-1 col-form-label" htmlFor="features">Features</span>
           <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group flex-nowrap align-items-stretch">
             <div className="input-group-prepend">
               <label className="input-group-text" htmlFor="featuresInclude">Include</label>

@@ -19,6 +19,7 @@
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-select": "^3.0.4",
+    "reinspect": "^1.0.1",
     "rxjs": "^6.5.2"
   },
   "devDependencies": {
