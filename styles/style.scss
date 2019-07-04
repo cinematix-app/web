@@ -36,39 +36,94 @@ input[disabled] {
     opacity: 0.3;
 }
 
-.rounded-right-0 {
-    border-top-right-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-}
+@each $breakpoint in map-keys($grid-breakpoints) {
+    @include media-breakpoint-up($breakpoint) {
+        $infix: breakpoint-infix($breakpoint, $grid-breakpoints);
 
-.rounded-left-0 {
-    border-top-left-radius: 0 !important;
-    border-bottom-left-radius: 0 !important;
+        .w#{$infix}-100 {
+            width: 100% !important;
+        }
+
+        .w#{$infix}-auto {
+            width: auto !important;
+        }
+
+        .rounded#{$infix}-0,
+        .rounded#{$infix}-0 .select__control {
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
+        }
+    
+        .rounded#{$infix}-right-0,
+        .rounded#{$infix}-right-0 .select__control {
+            border-top-right-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+        }
+
+        .rounded#{$infix}-right,
+        .rounded#{$infix}-right .select__control {
+            border-top-right-radius: $border-radius !important;
+            border-bottom-right-radius: $border-radius !important;
+        }
+
+        .rounded#{$infix}-top-0,
+        .rounded#{$infix}-top-0 .select__control {
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+        }
+
+        .rounded#{$infix}-top,
+        .rounded#{$infix}-top .select__control {
+            border-top-left-radius: $border-radius !important;
+            border-top-right-radius: $border-radius !important;
+        }
+    
+        .rounded#{$infix}-left-0,
+        .rounded#{$infix}-left-0 .select__control {
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
+        }
+
+        .rounded#{$infix}-left,
+        .rounded#{$infix}-left .select__control {
+            border-top-left-radius: $border-radius !important;
+            border-bottom-left-radius: $border-radius !important;
+        }
+
+        .rounded#{$infix}-bottom-0,
+        .rounded#{$infix}-bottom-0 .select__control {
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+        }
+
+        .rounded#{$infix}-bottom,
+        .rounded#{$infix}-bottom .select__control {
+            border-bottom-left-radius: $border-radius !important;
+            border-bottom-right-radius: $border-radius !important;
+        }
+    }
 }
 
 .input-group-prepend label {
     color: $dropdown-link-hover-color;
 }
 
+.no-gutters {
+    margin-right: 0;
+    margin-left: 0;
+  
+    > .col,
+    > [class*="col-"] {
+      padding-right: 0;
+      padding-left: 0;
+    }
+  }
+
 .select-container {
     display: flex;
     flex: 1 1 auto;
-
-    &.rounded-0 .select__control {
-        @extend .rounded-0;
-    }
-
-    &.rounded-right .select__control {
-        @extend .rounded-right;
-    }
-
-    &.rounded-left-0 .select__control {
-        @extend .rounded-left-0;
-    }
-
-    &.rounded-right-0 .select__control {
-        @extend .rounded-right-0;
-    }
 
     .select__control {
         flex-grow: 1;

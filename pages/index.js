@@ -518,7 +518,7 @@ function Index() {
     <Layout>
       <form ref={formRef} onSubmit={e => e.preventDefault()}>
         <div className="row form-group">
-          <label className="col-1 col-form-label text-nowrap" htmlFor="zipCode">Zip Code</label>
+          <label className="col-2 col-lg-1 col-form-label text-nowrap" htmlFor="zipCode">Zip Code</label>
           <div className="col-md col-12">
             <input
               className="form-control"
@@ -563,17 +563,17 @@ function Index() {
           </div>
         </div>
         <div className="row form-group">
-          <label className="col-1 col-form-label" htmlFor="startDate">Date</label>
+          <label className="col-2 col-lg-1 col-form-label" htmlFor="startDate">Date</label>
           <div className="input-group col-md col-12">
-            <div className="input-group-prepend">
-              <div className="btn-group" role="group">
-                <button type="button" name="startDate" value="today" onClick={handleChange} aria-pressed={state.fields.startDate === 'today'} className={['btn', 'btn-outline-secondary', state.fields.startDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
+            <div className="input-group-prepend w-100 w-md-auto">
+              <div className="btn-group w-100 w-md-auto" role="group">
+                <button type="button" name="startDate" value="today" onClick={handleChange} aria-pressed={state.fields.startDate === 'today'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.startDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
                 <button type="button" name="startDate" value="tomorrow" onClick={handleChange} aria-pressed={state.fields.startDate === 'tomorrow'} className={['btn', 'btn-outline-secondary', state.fields.startDate === 'tomorrow' ? 'active' : ''].join(' ')}>Tomorrow</button>
-                <button type="button" name="startDate" value={dayAfterTomorrow} onClick={handleChange} aria-pressed={customStartDate} className={['btn', 'btn-outline-secondary', 'rounded-0', customStartDate ? 'active' : ''].join(' ')}>Other</button>
+                <button type="button" name="startDate" value={dayAfterTomorrow} onClick={handleChange} aria-pressed={customStartDate} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', customStartDate ? 'active' : ''].join(' ')}>Other</button>
               </div>
             </div>
             <input
-              className="form-control"
+              className="form-control rounded-bottom rounded-top-0 rounded-md-left-0 rounded-md-right"
               type="date"
               id="startDate"
               name="startDate"
@@ -587,31 +587,31 @@ function Index() {
         </div>
         {/* @TODO Put the theater filter here. */}
         <div className="row form-group">
-          <span className="col-1 col-form-label" htmlFor="amenities">Amenities</span>
-          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group flex-nowrap align-items-stretch">
-            <div className="input-group-prepend">
-              <label className="input-group-text" htmlFor="amenitiesInclude">Include</label>
+          <span className="col-2 col-lg-1 col-form-label" htmlFor="amenities">Amenities</span>
+          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group align-items-stretch">
+            <div className="input-group-prepend w-100 w-md-auto">
+              <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-right-0 rounded-md-left" htmlFor="amenitiesInclude">Include</label>
             </div>
             <Select
               inputId="amenitiesInclude"
               name="amenitiesInclude"
               options={amenitiesIncludeOptions}
-              className={['select-container', 'rounded-0', 'align-self-stretch'].join(' ')}
+              className={['select-container', 'rounded-top-0', 'rounded-md-bottom-0', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
               value={state.fields.amenitiesInclude.map(id => amenitiesIncludeOptions.find(({ value }) => id === value))}
               onChange={handleListChange('amenitiesInclude')}
               isMulti
             />
           </div>
-          <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group flex-nowrap align-items-stretch">
-            <div className="input-group-prepend">
-              <label className="input-group-text rounded-0" htmlFor="amenitiesExclude">Exclude</label>
+          <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group align-items-stretch">
+            <div className="input-group-prepend w-100 w-md-auto">
+              <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-0" htmlFor="amenitiesExclude">Exclude</label>
             </div>
             <Select
               inputId="amenitiesExclude"
               name="amenitiesExclude"
-              options={amenitiesIncludeOptions}
-              className={['select-container', 'rounded-left-0', 'align-self-stretch'].join(' ')}
+              options={amenitiesExcludeOptions}
+              className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
               value={state.fields.amenitiesExclude.map(id => amenitiesExcludeOptions.find(({ value }) => id === value))}
               onChange={handleListChange('amenitiesExclude')}
@@ -620,19 +620,19 @@ function Index() {
           </div>
         </div>
         <div className="row form-group">
-          <label className="col-1 col-form-label" htmlFor="movies">Movies</label>
-          <div className="input-group col-md col-12 flex-nowrap">
-            <div className="input-group-prepend">
-              <div className="btn-group" role="group">
-                <button type="button" name="movie" value="include" onClick={handleChange} aria-pressed={state.fields.movie === 'include'} className={['btn', 'btn-outline-secondary', state.fields.movie === 'include' ? 'active' : ''].join(' ')}>Include</button>
-                <button type="button" name="movie" value="exclude" onClick={handleChange} aria-pressed={state.fields.movie === 'exclude'} className={['btn', 'btn-outline-secondary', 'rounded-0', state.fields.movie === 'exclude' ? 'active' : ''].join(' ')}>Exclude</button>
+          <label className="col-2 col-lg-1 col-form-label" htmlFor="movies">Movies</label>
+          <div className="input-group col-md col-12">
+            <div className="input-group-prepend w-100 w-md-auto">
+              <div className="btn-group w-100 w-md-auto" role="group">
+                <button type="button" name="movie" value="include" onClick={handleChange} aria-pressed={state.fields.movie === 'include'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.movie === 'include' ? 'active' : ''].join(' ')}>Include</button>
+                <button type="button" name="movie" value="exclude" onClick={handleChange} aria-pressed={state.fields.movie === 'exclude'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', state.fields.movie === 'exclude' ? 'active' : ''].join(' ')}>Exclude</button>
               </div>
             </div>
             <Select
               inputId="movies"
               name="movies"
               options={movieOptions}
-              className={['select-container', 'rounded-left-0'].join(' ')}
+              className="select-container rounded-bottom rounded-top-0 rounded-md-left-0 rounded-md-right"
               classNamePrefix="select"
               value={state.fields.movies.map(id => movieOptions.find(({ value }) => id === value))}
               onChange={handleListChange('movies')}
@@ -641,10 +641,10 @@ function Index() {
           </div>
         </div>
         <div className="row form-group">
-          <span className="col-1 col-form-label" htmlFor="features">Features</span>
-          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group flex-nowrap align-items-stretch">
-            <div className="input-group-prepend">
-              <label className="input-group-text" htmlFor="featuresInclude">Include</label>
+          <span className="col-2 col-lg-1 col-form-label" htmlFor="features">Features</span>
+          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group align-items-stretch">
+            <div className="input-group-prepend w-100 w-md-auto">
+              <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-right-0 rounded-md-left" htmlFor="featuresInclude">Include</label>
             </div>
             <Select
               inputId="featuresInclude"
@@ -657,15 +657,15 @@ function Index() {
               isMulti
             />
           </div>
-          <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group flex-nowrap align-items-stretch">
-            <div className="input-group-prepend">
-              <label className="input-group-text rounded-0" htmlFor="featuresExclude">Exclude</label>
+          <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group align-items-stretch">
+            <div className="input-group-prepend w-100 w-md-auto">
+              <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-right-0 rounded-md-left" htmlFor="featuresExclude">Exclude</label>
             </div>
             <Select
               inputId="featuresExclude"
               name="featuresExclude"
               options={featuresExcludeOptions}
-              className={['select-container', 'rounded-left-0', 'align-self-stretch'].join(' ')}
+              className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
               value={state.fields.featuresExclude.map(id => featuresExcludeOptions.find(({ value }) => id === value))}
               onChange={handleListChange('featuresExclude')}
