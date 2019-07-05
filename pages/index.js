@@ -385,10 +385,17 @@ function Index() {
       );
     }
 
-    const options = [
-      ...state.fields.amenitiesInclude.map(id => amenitiesIncludeOptions.find(({ value }) => id === value)),
-      ...state.fields.featuresInclude.map(id => featuresIncludeOptions.find(({ value }) => id === value)),
-    ];
+    let options = [];
+    if (state.fields.amenitiesInclude.length > 1 || state.fields.featuresInclude.length > 1) {
+      options = [
+        ...state.fields.amenitiesInclude.map(
+          id => amenitiesIncludeOptions.find(({ value }) => id === value)
+        ),
+        ...state.fields.featuresInclude.map(
+          id => featuresIncludeOptions.find(({ value }) => id === value)
+        ),
+      ];
+    }
     
     let movieWidth = 4;
     let theaterWidth = 4;
@@ -439,11 +446,19 @@ function Index() {
         }
       }
 
-      if (!displayFilter(state.fields.amenitiesInclude, state.fields.amenitiesExclude, location.amenityFeature)) {
+      if (!displayFilter(
+        state.fields.amenitiesInclude,
+        state.fields.amenitiesExclude,
+        location.amenityFeature,
+      )) {
         return false;
       }
 
-      if (!displayFilter(state.fields.featuresInclude, state.fields.featuresExclude, offers.itemOffered.additionalProperty)) {
+      if (!displayFilter(
+        state.fields.featuresInclude,
+        state.fields.featuresExclude,
+        offers.itemOffered.additionalProperty,
+      )) {
         return false;
       }
 
@@ -462,11 +477,19 @@ function Index() {
       }
 
       const amenityFeature = [
-        ...(Array.isArray(showtime.location.amenityFeature) ? showtime.location.amenityFeature : [showtime.location.amenityFeature]),
+        ...(
+          Array.isArray(showtime.location.amenityFeature)
+            ? showtime.location.amenityFeature
+            : [showtime.location.amenityFeature]
+        ),
       ];
 
       const additionalProperty = [
-        ...(Array.isArray(showtime.offers.itemOffered.additionalProperty) ? showtime.offers.itemOffered.additionalProperty : [showtime.offers.itemOffered.additionalProperty]),
+        ...(
+          Array.isArray(showtime.offers.itemOffered.additionalProperty)
+            ? showtime.offers.itemOffered.additionalProperty
+            : [showtime.offers.itemOffered.additionalProperty]
+        ),
       ];
 
       let theaterDisplay;
