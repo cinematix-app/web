@@ -508,6 +508,7 @@ function Index() {
           </a>
         );
       }
+      
 
       let optionsDisplay;
       if (optionsLimit > 1) {
@@ -519,12 +520,14 @@ function Index() {
             || additionalProperty.find(a => a['@id'].split('/').pop() === option.value)
           ) {
             checkMark = (
-              <img src="static/baseline-check_circle-24px.svg" alt={option.label} />
+              <div className="mb-2">
+                <img src="static/baseline-check_circle-24px.svg" alt={option.label} /><span className="d-md-none"> {option.label}</span>
+              </div>
             );
           }
 
           return (
-            <div key={option.value} className="col-md-1 mb-2 text-center">
+            <div key={option.value} className="col-md-1 text-left text-md-center">
               {checkMark}
             </div>
           );
