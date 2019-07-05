@@ -370,6 +370,12 @@ function Index() {
   const now = DateTime.local();
   const today = now.toFormat('yyyy-MM-dd');
 
+  const movieOptions = useMemo(() => getOptions(state.movies, state.fields.movies), [state.movies, state.fields.movies]);
+  const amenitiesIncludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesInclude), [state.amenities, state.fields.amenitiesInclude]);
+  const amenitiesExcludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesExclude), [state.amenities, state.fields.amenitiesExclude]);
+  const featuresIncludeOptions = useMemo(() => getOptions(state.features, state.fields.featuresInclude), [state.features, state.fields.featuresInclude]);
+  const featuresExcludeOptions = useMemo(() => getOptions(state.features, state.fields.featuresExclude), [state.features, state.fields.featuresExclude]);
+
   const showtimes = useMemo(() => {
     if (state.status === 'error') {
       return (
@@ -377,6 +383,44 @@ function Index() {
           An error occured with the request to <a href={state.error.request.url} className="alert-link">{state.error.request.url}</a>
         </div>
       );
+    }
+
+    const options = [
+      ...state.fields.amenitiesInclude.map(id => amenitiesIncludeOptions.find(({ value }) => id === value)),
+      ...state.fields.featuresInclude.map(id => featuresIncludeOptions.find(({ value }) => id === value)),
+    ];
+    
+    let movieWidth = 4;
+    let theaterWidth = 4;
+    let showtimeWidth = 4;
+    const optionsLimit = options.length > 6 ? 6 : options.length;
+    switch (optionsLimit) {
+      case 2:
+        showtimeWidth -= 1;
+        movieWidth -= 1;
+        break;
+      case 3:
+        showtimeWidth -= 1;
+        movieWidth -= 1;
+        theaterWidth -= 1;
+        break;
+      case 4:
+        showtimeWidth -= 2;
+        movieWidth -= 1;
+        theaterWidth -= 1;
+        break;
+      case 5:
+        showtimeWidth -= 2;
+        movieWidth -= 2;
+        theaterWidth -= 1;
+        break;
+      case 6:
+        showtimeWidth -= 2;
+        movieWidth -= 2;
+        theaterWidth -= 2;
+        break;
+      default:
+        break;
     }
 
     const rows = [...(state.showtimes || [])].filter(({ offers, workPresented, location }) => {
@@ -417,6 +461,14 @@ function Index() {
         );
       }
 
+      const amenityFeature = [
+        ...(Array.isArray(showtime.location.amenityFeature) ? showtime.location.amenityFeature : [showtime.location.amenityFeature]),
+      ];
+
+      const additionalProperty = [
+        ...(Array.isArray(showtime.offers.itemOffered.additionalProperty) ? showtime.offers.itemOffered.additionalProperty : [showtime.offers.itemOffered.additionalProperty]),
+      ];
+
       let theaterDisplay;
       if (showtime.location) {
         theaterDisplay = (
@@ -424,6 +476,28 @@ function Index() {
             {showtime.location.name}
           </a>
         );
+      }
+
+      let optionsDisplay;
+      if (optionsLimit > 1) {
+        optionsDisplay = options.slice(0, optionsLimit).map((option) => {
+          let checkMark;
+  
+          if (
+            amenityFeature.find(a => a['@id'].split('/').pop() === option.value)
+            || additionalProperty.find(a => a['@id'].split('/').pop() === option.value)
+          ) {
+            checkMark = (
+              <img src="static/baseline-check_circle-24px.svg" alt={option.label} />
+            );
+          }
+
+          return (
+            <div key={option.value} className="col-md-1 mb-2 text-center">
+              {checkMark}
+            </div>
+          );
+        });
       }
 
       let className = [
@@ -455,13 +529,14 @@ function Index() {
 
       return (
         <div key={showtime['@id']} className="row align-items-center mb-2 mb-md-0">
-          <div className="col-md-4 mb-2">
+          <div className={`col-md-${movieWidth} mb-2`}>
             {movieDisplay}
           </div>
-          <div className="col-md-4 mb-2">
+          <div className={`col-md-${theaterWidth} mb-2`}>
             {theaterDisplay}
           </div>
-          <div className="col-md-4 mb-2">
+          {optionsDisplay}
+          <div className={`col-md-${showtimeWidth} mb-2`}>
             <a className={className.join(' ')} href={showtime.offers.url}>
               <time dateTime={startDate.toISO()}>
                 {startDate.toLocaleString(timeFormat)}
@@ -476,18 +551,25 @@ function Index() {
       return null;
     }
 
+    let optionsDisplay;
+    if (optionsLimit > 1) {
+      optionsDisplay = options.slice(0, optionsLimit).map(option => (
+        <div key={option.value} className="col-md-1 mb-2 text-center">
+          {option.label}
+        </div>
+      ));
+    }
+
     return (
       <Fragment>
-        <div className="row border-bottom d-none mb-2 d-md-flex">
-          <h5 className="col-md-4">
+        <div className="row border-bottom d-none mb-2 d-md-flex align-items-end">
+          <h5 className={`col-md-${movieWidth}`}>
             Movie
           </h5>
-          <h5 className="col-md-4">
+          <h5 className={`col-md-${theaterWidth}`}>
             Theater
           </h5>
-          <h5 className="col-md-4">
-            Showtime
-          </h5>
+          {optionsDisplay}
         </div>
         {rows}
       </Fragment>
@@ -507,12 +589,6 @@ function Index() {
   const customStartDate = !['today', 'tomorrow'].includes(state.fields.startDate);
 
   const dayAfterTomorrow = now.plus({ days: 2 }).toFormat('yyyy-MM-dd');
-
-  const movieOptions = useMemo(() => getOptions(state.movies, state.fields.movies), [state.movies, state.fields.movies]);
-  const amenitiesIncludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesInclude), [state.amenities, state.fields.amenitiesInclude]);
-  const amenitiesExcludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesExclude), [state.amenities, state.fields.amenitiesExclude]);
-  const featuresIncludeOptions = useMemo(() => getOptions(state.features, state.fields.featuresInclude), [state.features, state.fields.featuresInclude]);
-  const featuresExcludeOptions = useMemo(() => getOptions(state.features, state.fields.featuresExclude), [state.features, state.fields.featuresExclude]);
 
   return (
     <Layout>
@@ -564,7 +640,7 @@ function Index() {
         </div>
         <div className="row form-group">
           <label className="col-2 col-lg-1 col-form-label" htmlFor="startDate">Date</label>
-          <div className="input-group col-md col-12">
+          <div className="input-group col-md col-12 flex-md-nowrap">
             <div className="input-group-prepend w-100 w-md-auto">
               <div className="btn-group w-100 w-md-auto" role="group">
                 <button type="button" name="startDate" value="today" onClick={handleChange} aria-pressed={state.fields.startDate === 'today'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.startDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
@@ -588,7 +664,7 @@ function Index() {
         {/* @TODO Put the theater filter here. */}
         <div className="row form-group">
           <span className="col-2 col-lg-1 col-form-label" htmlFor="amenities">Amenities</span>
-          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group align-items-stretch">
+          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group align-items-stretch flex-md-nowrap">
             <div className="input-group-prepend w-100 w-md-auto">
               <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-right-0 rounded-md-left" htmlFor="amenitiesInclude">Include</label>
             </div>
@@ -603,7 +679,7 @@ function Index() {
               isMulti
             />
           </div>
-          <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group align-items-stretch">
+          <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group align-items-stretch flex-md-nowrap">
             <div className="input-group-prepend w-100 w-md-auto">
               <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-0" htmlFor="amenitiesExclude">Exclude</label>
             </div>
@@ -621,7 +697,7 @@ function Index() {
         </div>
         <div className="row form-group">
           <label className="col-2 col-lg-1 col-form-label" htmlFor="movies">Movies</label>
-          <div className="input-group col-md col-12">
+          <div className="input-group col-md col-12 flex-md-nowrap">
             <div className="input-group-prepend w-100 w-md-auto">
               <div className="btn-group w-100 w-md-auto" role="group">
                 <button type="button" name="movie" value="include" onClick={handleChange} aria-pressed={state.fields.movie === 'include'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.movie === 'include' ? 'active' : ''].join(' ')}>Include</button>
@@ -642,7 +718,7 @@ function Index() {
         </div>
         <div className="row form-group">
           <span className="col-2 col-lg-1 col-form-label" htmlFor="features">Features</span>
-          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group align-items-stretch">
+          <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group align-items-stretch flex-md-nowrap">
             <div className="input-group-prepend w-100 w-md-auto">
               <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-right-0 rounded-md-left" htmlFor="featuresInclude">Include</label>
             </div>
