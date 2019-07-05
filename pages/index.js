@@ -386,11 +386,19 @@ function Index() {
     }
 
     let options = [];
-    if (state.fields.amenitiesInclude.length > 1 || state.fields.featuresInclude.length > 1) {
+  
+    if (state.fields.amenitiesInclude.length > 1) {
       options = [
+        ...options,
         ...state.fields.amenitiesInclude.map(
           id => amenitiesIncludeOptions.find(({ value }) => id === value)
         ),
+      ];
+    }
+
+    if (state.fields.featuresInclude.length > 1) {
+      options = [
+        ...options,
         ...state.fields.featuresInclude.map(
           id => featuresIncludeOptions.find(({ value }) => id === value)
         ),
