@@ -167,7 +167,7 @@ async function resultFilter(result, type) {
   const data = await frame(result, {
     '@context': {
       '@vocab': 'https://schema.org/',
-      cinematix: 'https://cinematix.app/',
+      x: 'https://cinematix.app/',
     },
     '@type': type,
   });
