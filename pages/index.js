@@ -269,35 +269,20 @@ function Index() {
   // Subscribe the query changes and dispatch the results.
   useEffect(() => {
     query.subscribe(async (data) => {
-      const [showtimes, movies, amenities, products] = await Promise.all([
+      const [showtimes, movies, amenities, features] = await Promise.all([
         resultFilter(data, 'ScreeningEvent'),
         resultFilter(data, 'Movie'),
         resultFilter(data, 'LocationFeatureSpecification'),
-        resultFilter(data, 'Product'),
+        resultFilter(data, 'x:Property'),
       ]);
 
-      const properties = new Map();
-
-      products.forEach(({ additionalProperty }) => {
-        if (!additionalProperty) {
-          return;
-        }
-
-        if (Array.isArray(additionalProperty)) {
-          additionalProperty.forEach((property) => {
-            properties.set(property['@id'], property);
-          });
-        } else {
-          properties.set(additionalProperty['@id'], additionalProperty);
-        }
-      });
 
       dispatch({
         type: 'result',
         showtimes,
         movies,
         amenities,
-        features: [...properties.values()],
+        features,
       });
     });
   }, []);
