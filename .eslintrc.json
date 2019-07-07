@@ -1,9 +1,14 @@
 {
     "extends": "airbnb",
+    "env": {
+        "browser": true
+    },
     "rules": {
         "react/react-in-jsx-scope": "off",
         "react/jsx-filename-extension": "off",
         "react/prop-types": "off",
-        "react/jsx-one-expression-per-line": "off"
+        "react/jsx-one-expression-per-line": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+        "jsx-a11y/label-has-for": "off"
     }
 }

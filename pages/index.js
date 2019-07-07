@@ -1,4 +1,10 @@
-import { useReducer, useEffect, useRef, useMemo, Fragment } from 'react';
+import {
+  useReducer,
+  useEffect,
+  useRef,
+  useMemo,
+  Fragment,
+} from 'react';
 import Router from 'next/router';
 import { Subject, EMPTY } from 'rxjs';
 import { switchMap, distinctUntilChanged, catchError } from 'rxjs/operators';
@@ -253,15 +259,17 @@ function Index() {
         if (typeof initialState.fields[name] === 'undefined') {
           return;
         }
-      
+
         dispatch({
           type: 'change',
           name,
-          value: Array.isArray(initialState.fields[name]) ? url.searchParams.getAll(name) : url.searchParams.get(name),
+          value: Array.isArray(initialState.fields[name])
+            ? url.searchParams.getAll(name)
+            : url.searchParams.get(name),
           valid: null,
         });
       });
-  
+
       dispatch({ type: 'searchParsed' });
     }
   }, []);
@@ -355,11 +363,26 @@ function Index() {
   const now = DateTime.local();
   const today = now.toFormat('yyyy-MM-dd');
 
-  const movieOptions = useMemo(() => getOptions(state.movies, state.fields.movies), [state.movies, state.fields.movies]);
-  const amenitiesIncludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesInclude), [state.amenities, state.fields.amenitiesInclude]);
-  const amenitiesExcludeOptions = useMemo(() => getOptions(state.amenities, state.fields.amenitiesExclude), [state.amenities, state.fields.amenitiesExclude]);
-  const featuresIncludeOptions = useMemo(() => getOptions(state.features, state.fields.featuresInclude), [state.features, state.fields.featuresInclude]);
-  const featuresExcludeOptions = useMemo(() => getOptions(state.features, state.fields.featuresExclude), [state.features, state.fields.featuresExclude]);
+  const movieOptions = useMemo(
+    () => getOptions(state.movies, state.fields.movies),
+    [state.movies, state.fields.movies],
+  );
+  const amenitiesIncludeOptions = useMemo(
+    () => getOptions(state.amenities, state.fields.amenitiesInclude),
+    [state.amenities, state.fields.amenitiesInclude],
+  );
+  const amenitiesExcludeOptions = useMemo(
+    () => getOptions(state.amenities, state.fields.amenitiesExclude),
+    [state.amenities, state.fields.amenitiesExclude],
+  );
+  const featuresIncludeOptions = useMemo(
+    () => getOptions(state.features, state.fields.featuresInclude),
+    [state.features, state.fields.featuresInclude],
+  );
+  const featuresExcludeOptions = useMemo(
+    () => getOptions(state.features, state.fields.featuresExclude),
+    [state.features, state.fields.featuresExclude],
+  );
 
   const showtimes = useMemo(() => {
     if (state.status === 'error') {
@@ -371,12 +394,12 @@ function Index() {
     }
 
     let options = [];
-  
+
     if (state.fields.amenitiesInclude.length > 1) {
       options = [
         ...options,
         ...state.fields.amenitiesInclude.map(
-          id => amenitiesIncludeOptions.find(({ value }) => id === value)
+          id => amenitiesIncludeOptions.find(({ value }) => id === value),
         ),
       ];
     }
@@ -385,11 +408,11 @@ function Index() {
       options = [
         ...options,
         ...state.fields.featuresInclude.map(
-          id => featuresIncludeOptions.find(({ value }) => id === value)
+          id => featuresIncludeOptions.find(({ value }) => id === value),
         ),
       ];
     }
-    
+
     let movieWidth = 4;
     let theaterWidth = 4;
     let showtimeWidth = 4;
@@ -493,13 +516,13 @@ function Index() {
           </a>
         );
       }
-      
+
 
       let optionsDisplay;
       if (optionsLimit > 1) {
         optionsDisplay = options.slice(0, optionsLimit).map((option) => {
           let checkMark;
-  
+
           if (
             amenityFeature.find(a => a['@id'].split('/').pop() === option.value)
             || additionalProperty.find(a => a['@id'].split('/').pop() === option.value)
@@ -693,7 +716,9 @@ function Index() {
               options={amenitiesIncludeOptions}
               className={['select-container', 'rounded-top-0', 'rounded-md-bottom-0', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
-              value={state.fields.amenitiesInclude.map(id => amenitiesIncludeOptions.find(({ value }) => id === value))}
+              value={state.fields.amenitiesInclude.map(
+                id => amenitiesIncludeOptions.find(({ value }) => id === value),
+              )}
               onChange={handleListChange('amenitiesInclude')}
               isMulti
             />
@@ -708,7 +733,9 @@ function Index() {
               options={amenitiesExcludeOptions}
               className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
-              value={state.fields.amenitiesExclude.map(id => amenitiesExcludeOptions.find(({ value }) => id === value))}
+              value={state.fields.amenitiesExclude.map(
+                id => amenitiesExcludeOptions.find(({ value }) => id === value),
+              )}
               onChange={handleListChange('amenitiesExclude')}
               isMulti
             />
@@ -747,7 +774,9 @@ function Index() {
               options={featuresIncludeOptions}
               className={['select-container', 'rounded-0', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
-              value={state.fields.featuresInclude.map(id => featuresIncludeOptions.find(({ value }) => id === value))}
+              value={state.fields.featuresInclude.map(
+                id => featuresIncludeOptions.find(({ value }) => id === value),
+              )}
               onChange={handleListChange('featuresInclude')}
               isMulti
             />
@@ -762,7 +791,9 @@ function Index() {
               options={featuresExcludeOptions}
               className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
-              value={state.fields.featuresExclude.map(id => featuresExcludeOptions.find(({ value }) => id === value))}
+              value={state.fields.featuresExclude.map(
+                id => featuresExcludeOptions.find(({ value }) => id === value),
+              )}
               onChange={handleListChange('featuresExclude')}
               isMulti
             />
