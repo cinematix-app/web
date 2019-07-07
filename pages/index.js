@@ -17,7 +17,7 @@ import Layout from '../components/layout';
 const initialState = {
   fields: {
     zipCode: '',
-    limit: '10',
+    limit: '5',
     ticketing: 'both',
     startDate: 'today',
     movie: 'include',
