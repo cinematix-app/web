@@ -8,7 +8,6 @@ import {
 import Router from 'next/router';
 import {
   Subject,
-  EMPTY,
   of,
   merge,
   forkJoin,
@@ -106,13 +105,13 @@ function textToCollection(text, data) {
  * @return {array}
  */
 function mergeList(existingList, newList) {
-  const map = new Map();
+  const list = new Map();
 
-  existingList.forEach(item => map.set(item['@id'], item));
-  newList.forEach(item => map.set(item['@id'], item));
+  existingList.forEach(item => list.set(item['@id'], item));
+  newList.forEach(item => list.set(item['@id'], item));
 
 
-  return [...map.values()];
+  return [...list.values()];
 }
 
 function resultReducer(state, action) {
@@ -246,6 +245,15 @@ function getGroupLabel(key) {
   }
 }
 
+async function resultFilter(result, type) {
+  const data = await frame(result, {
+    '@context': context,
+    '@type': type,
+  });
+
+  return data['@graph'] || [];
+}
+
 function getPropOptions(list, field) {
   const groups = new Map();
 
@@ -284,6 +292,8 @@ function getPropValue(list, field) {
         return option;
       }
     }
+
+    return undefined;
   });
 }
 
@@ -295,7 +305,7 @@ const query = (new Subject()).pipe(
     && z.startDate === y.startDate
     && z.theaters === y.theaters
   )),
-  switchMap(({ dispatch, ...q }) => {
+  switchMap((q) => {
     const url = new URL('https://cinematix.app/api/showtimes');
 
     if (q.theaters.length > 0) {
@@ -324,16 +334,33 @@ const query = (new Subject()).pipe(
         break;
     }
 
-    dispatch({
-      type: 'status',
-      status: 'fetching',
-    });
-
-    return ajax.getJSON(url.toString()).pipe(
-      catchError((error) => {
-        dispatch({ type: 'error', error });
-        return EMPTY;
+    return merge(
+      of({
+        type: 'status',
+        status: 'fetching',
       }),
+      ajax.getJSON(url.toString()).pipe(
+        flatMap(data => (
+          forkJoin([
+            resultFilter(data, 'ScreeningEvent'),
+            resultFilter(data, 'MovieTheater'),
+            resultFilter(data, 'Movie'),
+            resultFilter(data, ['x:Genre', 'x:Rating', 'x:Amenity', 'x:Format', 'x:Property']),
+          ]).pipe(
+            map(([showtimes, theaters, movies, props]) => ({
+              type: 'result',
+              showtimes,
+              theaters,
+              movies,
+              props,
+            })),
+          )
+        )),
+        catchError(error => of({
+          type: 'error',
+          error,
+        })),
+      ),
     );
   }),
 );
@@ -377,30 +404,30 @@ function createPropertySearch(type, id) {
             }
 
             // Labels.
-            const url = new URL('https://www.wikidata.org/w/api.php');
-            url.searchParams.set('action', 'wbgetentities');
-            url.searchParams.set('format', 'json');
-            url.searchParams.set('origin', '*');
-            url.searchParams.set('formatversion', 2);
-            url.searchParams.set('ids', data.query.search.map(({ title }) => title).join('|'));
-            url.searchParams.set('languages', 'en');
+            const labelUrl = new URL('https://www.wikidata.org/w/api.php');
+            labelUrl.searchParams.set('action', 'wbgetentities');
+            labelUrl.searchParams.set('format', 'json');
+            labelUrl.searchParams.set('origin', '*');
+            labelUrl.searchParams.set('formatversion', 2);
+            labelUrl.searchParams.set('ids', data.query.search.map(({ title }) => title).join('|'));
+            labelUrl.searchParams.set('languages', 'en');
 
-            const labels = ajax.getJSON(url.toString());
+            const entityLabels = ajax.getJSON(labelUrl.toString());
 
-            const claims = forkJoin(data.query.search.map(({ title }) => {
-              const url = new URL('https://www.wikidata.org/w/api.php');
-              url.searchParams.set('action', 'wbgetclaims');
-              url.searchParams.set('format', 'json');
-              url.searchParams.set('origin', '*');
-              url.searchParams.set('formatversion', 2);
-              url.searchParams.set('entity', title);
-              url.searchParams.set('property', id);
-              url.searchParams.set('props', '');
+            const entityClaims = forkJoin(data.query.search.map(({ title }) => {
+              const claimUrl = new URL('https://www.wikidata.org/w/api.php');
+              claimUrl.searchParams.set('action', 'wbgetclaims');
+              claimUrl.searchParams.set('format', 'json');
+              claimUrl.searchParams.set('origin', '*');
+              claimUrl.searchParams.set('formatversion', 2);
+              claimUrl.searchParams.set('entity', title);
+              claimUrl.searchParams.set('property', id);
+              claimUrl.searchParams.set('props', '');
 
-              return forkJoin([of(title), ajax.getJSON(url.toString())]);
+              return forkJoin([of(title), ajax.getJSON(claimUrl.toString())]);
             }));
 
-            return forkJoin([labels, claims]).pipe(
+            return forkJoin([entityLabels, entityClaims]).pipe(
               map(([labels, claimCollection]) => {
                 const result = claimCollection.reduce((acc, [entityId, claimSet]) => {
                   if (
@@ -475,15 +502,6 @@ function createPropertySearch(type, id) {
 
 const theaterSearch = createPropertySearch('theaters', 'P6644');
 const movieSearch = createPropertySearch('movies', 'P5693');
-
-async function resultFilter(result, type) {
-  const data = await frame(result, {
-    '@context': context,
-    '@type': type,
-  });
-
-  return data['@graph'] || [];
-}
 
 function displayFilter(include, exclude, data) {
   if (include.length !== 0) {
@@ -581,12 +599,14 @@ function Index() {
   };
 
   useEffect(() => {
-    theaterSearch.subscribe(action => dispatch(action));
-    movieSearch.subscribe(action => dispatch(action));
+    const querySub = query.subscribe(action => dispatch(action));
+    const theaterSub = theaterSearch.subscribe(action => dispatch(action));
+    const movieSub = movieSearch.subscribe(action => dispatch(action));
 
     return () => {
-      theaterSearch.unsubscribe();
-      movieSearch.unsubscribe();
+      querySub.unsubscribe();
+      theaterSub.unsubscribe();
+      movieSub.unsubscribe();
     };
   }, []);
 
@@ -621,28 +641,6 @@ function Index() {
         search,
       });
     }
-  }, []);
-
-  // Subscribe the query changes and dispatch the results.
-  useEffect(() => {
-    const subscription = query.subscribe(async (data) => {
-      const [showtimes, theaters, movies, props] = await Promise.all([
-        resultFilter(data, 'ScreeningEvent'),
-        resultFilter(data, 'MovieTheater'),
-        resultFilter(data, 'Movie'),
-        resultFilter(data, ['x:Genre', 'x:Rating', 'x:Amenity', 'x:Format', 'x:Property']),
-      ]);
-
-      dispatch({
-        type: 'result',
-        showtimes,
-        theaters,
-        movies,
-        props,
-      });
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   // Update the query.
@@ -1056,7 +1054,9 @@ function Index() {
               options={theaterOptions}
               className="select-container rounded-bottom rounded-top-0 rounded-md-left-0 rounded-md-right"
               classNamePrefix="select"
-              value={state.fields.theaters.map(id => theaterOptions.find(({ value }) => id === value))}
+              value={state.fields.theaters.map(
+                id => theaterOptions.find(({ value }) => id === value),
+              )}
               onChange={handleListChange('theaters')}
               onInputChange={createInputHandler('theaters')}
               isLoading={state.search.theaters.fetching}
