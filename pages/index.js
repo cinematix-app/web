@@ -11,6 +11,7 @@ import {
   of,
   merge,
   forkJoin,
+  EMPTY,
 } from 'rxjs';
 import {
   switchMap,
@@ -40,7 +41,6 @@ const initialState = {
     props: [],
     propsx: [],
   },
-  valid: false,
   showtimes: [],
   theaters: [],
   movies: [],
@@ -153,7 +153,6 @@ function reducer(state, action) {
           ...state.fields,
           [action.name]: action.value,
         },
-        valid: action.valid,
       };
     case 'result':
       return resultReducer(state, action);
@@ -197,7 +196,6 @@ function reducer(state, action) {
           ...state.fields,
           ...action.search,
         },
-        valid: null,
         searchParsed: true,
       };
     default:
@@ -310,7 +308,7 @@ const query = (new Subject()).pipe(
 
     if (q.theaters.length > 0) {
       q.theaters.forEach(id => url.searchParams.append('theaters', id));
-    } else {
+    } else if (q.zipCode.length >= 3) {
       url.searchParams.set('zipCode', q.zipCode.padStart(5, '0'));
 
       ['limit', 'ticketing'].forEach((field) => {
@@ -318,6 +316,8 @@ const query = (new Subject()).pipe(
           url.searchParams.set(field, q[field]);
         }
       });
+    } else {
+      return EMPTY;
     }
 
     // Always set the start date to ensure the correct results are returned.
@@ -569,7 +569,6 @@ function Index() {
       type: 'change',
       name: target.name,
       value: target.type === 'checkbox' ? target.checked : target.value,
-      valid: formRef.current ? formRef.current.checkValidity() : null,
     });
   };
 
@@ -578,7 +577,6 @@ function Index() {
       type: 'change',
       name: list,
       value: data ? data.map(({ value }) => value) : [],
-      valid: null,
     })
   );
 
@@ -645,11 +643,6 @@ function Index() {
 
   // Update the query.
   useEffect(() => {
-    // Wait for a valid Zip Code before doing anything.
-    if (state.valid === false) {
-      return;
-    }
-
     const {
       zipCode,
       limit,
@@ -668,7 +661,6 @@ function Index() {
       dispatch,
     });
   }, [
-    state.valid,
     state.fields.zipCode,
     state.fields.limit,
     state.fields.ticketing,
@@ -1010,7 +1002,6 @@ function Index() {
                 type: 'change',
                 name: 'ticketing',
                 value,
-                valid: null,
               })}
               isDisabled={locationDisabled}
             />
