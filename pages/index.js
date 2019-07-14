@@ -820,7 +820,7 @@ function Index() {
           </div>
           <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group align-items-stretch flex-md-nowrap">
             <div className="input-group-prepend w-100 w-md-auto">
-              <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-right-0 rounded-md-left" htmlFor="propsx">Exclude</label>
+              <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-right-0 rounded-md-left-0" htmlFor="propsx">Exclude</label>
             </div>
             <Select
               inputId="propsx"
