@@ -55,7 +55,7 @@ input[disabled] {
             border-bottom-right-radius: 0 !important;
             border-bottom-left-radius: 0 !important;
         }
-    
+
         .rounded#{$infix}-right-0,
         .rounded#{$infix}-right-0 .select__control {
             border-top-right-radius: 0 !important;
@@ -79,7 +79,7 @@ input[disabled] {
             border-top-left-radius: $border-radius !important;
             border-top-right-radius: $border-radius !important;
         }
-    
+
         .rounded#{$infix}-left-0,
         .rounded#{$infix}-left-0 .select__control {
             border-top-left-radius: 0 !important;
@@ -113,7 +113,7 @@ input[disabled] {
 .no-gutters {
     margin-right: 0;
     margin-left: 0;
-  
+
     > .col,
     > [class*="col-"] {
       padding-right: 0;
@@ -139,7 +139,7 @@ input[disabled] {
         }
 
     }
- 
+
     .select__input {
         color: $input-color;
     }
@@ -148,8 +148,6 @@ input[disabled] {
         color: $input-color;
     }
     .select__multi-value__remove {
-        @extend .rounded-0;
-        @extend .rounded-right;
         &:hover {
             color: $dropdown-link-hover-color;
             background-color: $dropdown-link-hover-bg;
@@ -197,5 +195,5 @@ input[disabled] {
         color: $dropdown-link-active-color;
         background-color: $dropdown-link-active-bg;
     }
-    
+
 }
