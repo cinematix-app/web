@@ -148,6 +148,7 @@ input[disabled] {
         color: $input-color;
     }
     .select__multi-value__remove {
+        @extend .rounded-0;
         &:hover {
             color: $dropdown-link-hover-color;
             background-color: $dropdown-link-hover-bg;
