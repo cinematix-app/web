@@ -11,7 +11,6 @@ import {
   of,
   merge,
   forkJoin,
-  EMPTY,
 } from 'rxjs';
 import {
   switchMap,
@@ -119,9 +118,9 @@ function resultReducer(state, action) {
     return state;
   }
 
-  const theaters = mergeList(state.theaters, action.theaters);
-  const movies = mergeList(state.movies, action.movies);
-  const props = mergeList(state.props, action.props);
+  const theaters = mergeList(state.theaters, action.theaters || []);
+  const movies = mergeList(state.movies, action.movies || []);
+  const props = mergeList(state.props, action.props || []);
 
   return {
     ...state,
@@ -308,7 +307,7 @@ const query = (new Subject()).pipe(
 
     if (q.theaters.length > 0) {
       q.theaters.forEach(id => url.searchParams.append('theaters', id));
-    } else if (q.zipCode.length >= 3) {
+    } else if (q.zipCode.length > 2) {
       url.searchParams.set('zipCode', q.zipCode.padStart(5, '0'));
 
       ['limit', 'ticketing'].forEach((field) => {
@@ -317,7 +316,9 @@ const query = (new Subject()).pipe(
         }
       });
     } else {
-      return EMPTY;
+      return of({
+        type: 'result',
+      });
     }
 
     // Always set the start date to ensure the correct results are returned.
