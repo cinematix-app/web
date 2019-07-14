@@ -20,6 +20,8 @@ const initialState = {
     limit: '5',
     ticketing: 'both',
     startDate: 'today',
+    theater: 'include',
+    theaters: [],
     movie: 'include',
     movies: [],
     props: [],
@@ -27,6 +29,7 @@ const initialState = {
   },
   valid: false,
   showtimes: [],
+  theaters: [],
   movies: [],
   props: [],
   searchParsed: false,
@@ -44,6 +47,7 @@ const context = {
   xp: 'https://cinematix.app/property/',
   xr: 'https://cinematix.app/rating/',
   xs: 'https://cinematix.app/showtime/',
+  xt: 'https://cinematix.app/theater/',
 };
 
 function toArray(value) {
@@ -92,6 +96,7 @@ function resultReducer(state, action) {
     return state;
   }
 
+  const theaters = mergeList(state.theaters, action.theaters);
   const movies = mergeList(state.movies, action.movies);
   const props = mergeList(state.props, action.props);
 
@@ -110,6 +115,7 @@ function resultReducer(state, action) {
         ],
       }
     )),
+    theaters,
     movies,
     props,
   };
@@ -243,17 +249,22 @@ const query = (new Subject()).pipe(
     && z.limit === y.limit
     && z.ticketing === y.ticketing
     && z.startDate === y.startDate
+    && z.theaters === y.theaters
   )),
   switchMap(({ dispatch, ...q }) => {
-    const zipCode = q.zipCode.padStart(5, '0');
     const url = new URL('https://cinematix.app/api/showtimes');
-    url.searchParams.set('zipCode', zipCode);
 
-    ['limit', 'ticketing'].forEach((field) => {
-      if (q[field] !== initialState.fields[field]) {
-        url.searchParams.set(field, q[field]);
-      }
-    });
+    if (q.theaters.length > 0) {
+      q.theaters.forEach(id => url.searchParams.append('theaters', id));
+    } else {
+      url.searchParams.set('zipCode', q.zipCode.padStart(5, '0'));
+
+      ['limit', 'ticketing'].forEach((field) => {
+        if (q[field] !== initialState.fields[field]) {
+          url.searchParams.set(field, q[field]);
+        }
+      });
+    }
 
     // Always set the start date to ensure the correct results are returned.
     // They might not be correct because of timezones. :(
@@ -346,6 +357,14 @@ function Index() {
   const formRef = useRef(null);
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  const locationDisabled = state.fields.theater === 'include' && state.fields.theaters.length > 0;
+
+  const locaitonFields = [
+    'zipCode',
+    'limit',
+    'ticketing',
+  ];
+
   const handleChange = ({ target }) => {
     dispatch({
       type: 'change',
@@ -399,9 +418,10 @@ function Index() {
 
   // Subscribe the query changes and dispatch the results.
   useEffect(() => {
-    query.subscribe(async (data) => {
-      const [showtimes, movies, props] = await Promise.all([
+    const subscription = query.subscribe(async (data) => {
+      const [showtimes, theaters, movies, props] = await Promise.all([
         resultFilter(data, 'ScreeningEvent'),
+        resultFilter(data, 'MovieTheater'),
         resultFilter(data, 'Movie'),
         resultFilter(data, ['x:Genre', 'x:Rating', 'x:Amenity', 'x:Format', 'x:Property']),
       ]);
@@ -409,10 +429,13 @@ function Index() {
       dispatch({
         type: 'result',
         showtimes,
+        theaters,
         movies,
         props,
       });
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Update the query.
@@ -427,6 +450,8 @@ function Index() {
       limit,
       ticketing,
       startDate,
+      theater,
+      theaters,
     } = state.fields;
 
     query.next({
@@ -434,6 +459,7 @@ function Index() {
       limit,
       ticketing,
       startDate,
+      theaters: theater === 'include' ? theaters : [],
       dispatch,
     });
   }, [
@@ -442,6 +468,8 @@ function Index() {
     state.fields.limit,
     state.fields.ticketing,
     state.fields.startDate,
+    state.fields.theater,
+    state.fields.theaters,
   ]);
 
   // Update the route.
@@ -453,7 +481,9 @@ function Index() {
 
     const searchParams = new URLSearchParams();
     Object.keys(state.fields).forEach((name) => {
-      if (state.fields[name] !== initialState.fields[name] && state.fields[name] !== '') {
+      if (locationDisabled && locaitonFields.includes(name)) {
+        searchParams.delete(name);
+      } else if (state.fields[name] !== initialState.fields[name] && state.fields[name] !== '') {
         if (Array.isArray(state.fields[name])) {
           searchParams.delete(name);
           state.fields[name].forEach(v => (
@@ -470,10 +500,13 @@ function Index() {
     const search = searchParams.toString();
     Router.replace(search ? `/?${search}` : '/');
   }, [
+    locationDisabled,
     state.fields.zipCode,
     state.fields.limit,
     state.fields.ticketing,
     state.fields.startDate,
+    state.fields.theater,
+    state.fields.theaters,
     state.fields.movie,
     state.fields.movies,
     state.fields.props,
@@ -486,6 +519,11 @@ function Index() {
   const movieOptions = useMemo(
     () => getOptions(state.movies, state.fields.movies),
     [state.movies, state.fields.movies],
+  );
+
+  const theaterOptions = useMemo(
+    () => getOptions(state.theaters, state.fields.theaters),
+    [state.theaters, state.fields.theaters],
   );
 
   const propsOptions = useMemo(
@@ -549,6 +587,7 @@ function Index() {
     }
 
     const rows = [...(state.showtimes || [])].filter(({
+      location,
       offers,
       workPresented,
       props,
@@ -564,6 +603,17 @@ function Index() {
           return false;
         }
         if (state.fields.movie === 'include' && !match) {
+          return false;
+        }
+      }
+
+      if (state.fields.theaters.length !== 0) {
+        const match = state.fields.theaters.includes(location['@id'].split(':').pop());
+
+        if (state.fields.theater === 'exclude' && match) {
+          return false;
+        }
+        if (state.fields.theater === 'include' && !match) {
           return false;
         }
       }
@@ -698,6 +748,8 @@ function Index() {
     state.status,
     state.error,
     state.showtimes,
+    state.fields.theater,
+    state.fields.theaters,
     state.fields.movie,
     state.fields.movies,
     state.fields.props,
@@ -724,6 +776,7 @@ function Index() {
               required
               value={state.fields.zipCode}
               onChange={handleChange}
+              disabled={locationDisabled}
             />
           </div>
           <label className="col-auto col-form-label text-nowrap" htmlFor="limit">Max. Theaters</label>
@@ -736,6 +789,7 @@ function Index() {
               min="0"
               value={state.fields.limit}
               onChange={handleChange}
+              disabled={locationDisabled}
             />
           </div>
           <label className="col-auto col-form-label" htmlFor="ticketing">Ticketing</label>
@@ -753,6 +807,7 @@ function Index() {
                 value,
                 valid: null,
               })}
+              isDisabled={locationDisabled}
             />
           </div>
         </div>
@@ -779,7 +834,27 @@ function Index() {
             />
           </div>
         </div>
-        {/* @TODO Put the theater filter here. */}
+        <div className="row form-group">
+          <label className="col-2 col-lg-1 col-form-label" htmlFor="theaters">Theaters</label>
+          <div className="input-group col-md col-12 flex-md-nowrap">
+            <div className="input-group-prepend w-100 w-md-auto">
+              <div className="btn-group w-100 w-md-auto" role="group">
+                <button type="button" name="theater" value="include" onClick={handleChange} aria-pressed={state.fields.theater === 'include'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.theater === 'include' ? 'active' : ''].join(' ')}>Include</button>
+                <button type="button" name="theater" value="exclude" onClick={handleChange} aria-pressed={state.fields.theater === 'exclude'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', state.fields.theater === 'exclude' ? 'active' : ''].join(' ')}>Exclude</button>
+              </div>
+            </div>
+            <Select
+              inputId="theaters"
+              name="theaters"
+              options={theaterOptions}
+              className="select-container rounded-bottom rounded-top-0 rounded-md-left-0 rounded-md-right"
+              classNamePrefix="select"
+              value={state.fields.theaters.map(id => theaterOptions.find(({ value }) => id === value))}
+              onChange={handleListChange('theaters')}
+              isMulti
+            />
+          </div>
+        </div>
         <div className="row form-group">
           <label className="col-2 col-lg-1 col-form-label" htmlFor="movies">Movies</label>
           <div className="input-group col-md col-12 flex-md-nowrap">

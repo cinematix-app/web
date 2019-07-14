@@ -31,6 +31,7 @@ header {
 }
 
 .form-control:disabled,
+.select__control--is-disabled,
 input[disabled] {
     background-color: $input-bg;
     opacity: 0.3;
@@ -137,7 +138,6 @@ input[disabled] {
             border-color: $input-focus-border-color;
             box-shadow: $input-focus-box-shadow;
         }
-
     }
 
     .select__input {
