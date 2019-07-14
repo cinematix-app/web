@@ -6,8 +6,22 @@ import {
   Fragment,
 } from 'react';
 import Router from 'next/router';
-import { Subject, EMPTY } from 'rxjs';
-import { switchMap, distinctUntilChanged, catchError } from 'rxjs/operators';
+import {
+  Subject,
+  EMPTY,
+  of,
+  merge,
+  forkJoin,
+} from 'rxjs';
+import {
+  switchMap,
+  flatMap,
+  distinctUntilChanged,
+  catchError,
+  debounceTime,
+  map,
+  filter,
+} from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime } from 'luxon';
 import { frame } from 'jsonld';
@@ -32,6 +46,16 @@ const initialState = {
   theaters: [],
   movies: [],
   props: [],
+  search: {
+    theaters: {
+      fetching: false,
+      result: [],
+    },
+    movies: {
+      fetching: false,
+      result: [],
+    },
+  },
   searchParsed: false,
   status: 'waiting',
   error: null,
@@ -145,6 +169,28 @@ function reducer(state, action) {
         status: 'error',
         error: action.error,
       };
+    case 'searchFetch':
+      return {
+        ...state,
+        search: {
+          ...state.search,
+          [action.field]: {
+            ...state.search[action.field],
+            fetching: true,
+          },
+        },
+      };
+    case 'searchResult':
+      return {
+        ...state,
+        search: {
+          ...state.search,
+          [action.field]: {
+            fetching: false,
+            result: action.result || [],
+          },
+        },
+      };
     case 'searchParsed':
       return {
         ...state,
@@ -160,29 +206,27 @@ function reducer(state, action) {
   }
 }
 
-function getOptions(list, field) {
-  const items = list.map(item => ({
-    label: item.name,
-    value: item['@id'].split(':').pop(),
+function getOptions(list, field, searchResult = []) {
+  const options = new Map();
+
+  list.forEach(item => options.set(item['@id'].split(':').pop(), item.name));
+
+  searchResult.forEach(({ value, label }) => {
+    if (!options.has(value)) {
+      options.set(value, label);
+    }
+  });
+
+  field.forEach((id) => {
+    if (!options.has(id)) {
+      options.set(id, id);
+    }
+  });
+
+  return [...options.entries()].map(([value, label]) => ({
+    label,
+    value,
   }));
-
-  // Ensure that all of the values are in the options, if not, add them.
-  return [
-    ...items,
-    ...field.reduce((acc, id) => {
-      if (items.find(i => i.value === id)) {
-        return acc;
-      }
-
-      return [
-        ...acc,
-        {
-          label: id,
-          value: id,
-        },
-      ];
-    }, []),
-  ];
 }
 
 function getGroupLabel(key) {
@@ -285,7 +329,6 @@ const query = (new Subject()).pipe(
       status: 'fetching',
     });
 
-    // @TODO handle an error!
     return ajax.getJSON(url.toString()).pipe(
       catchError((error) => {
         dispatch({ type: 'error', error });
@@ -294,6 +337,143 @@ const query = (new Subject()).pipe(
     );
   }),
 );
+
+function createPropertySearch(type, id) {
+  return (new Subject()).pipe(
+    filter(v => !!v),
+    distinctUntilChanged((z, y) => z === y),
+    debounceTime(250),
+    switchMap((value) => {
+      const url = new URL('https://www.wikidata.org/w/api.php');
+      url.searchParams.set('action', 'query');
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('list', 'search');
+      url.searchParams.set('formatversion', 2);
+      url.searchParams.set('srinfo', '');
+      url.searchParams.set('srprop', '');
+      url.searchParams.set('srenablerewrites', 1);
+      url.searchParams.set('origin', '*');
+      url.searchParams.set('srsearch', `${id} ${value}`);
+
+      return merge(
+        of({
+          type: 'searchFetch',
+          field: type,
+        }),
+        ajax.getJSON(url.toString()).pipe(
+          flatMap((data) => {
+            if (!data.query) {
+              return of({
+                type: 'searchResult',
+                field: type,
+              });
+            }
+
+            if (!data.query.search) {
+              return of({
+                type: 'searchResult',
+                field: type,
+              });
+            }
+
+            // Labels.
+            const url = new URL('https://www.wikidata.org/w/api.php');
+            url.searchParams.set('action', 'wbgetentities');
+            url.searchParams.set('format', 'json');
+            url.searchParams.set('origin', '*');
+            url.searchParams.set('formatversion', 2);
+            url.searchParams.set('ids', data.query.search.map(({ title }) => title).join('|'));
+            url.searchParams.set('languages', 'en');
+
+            const labels = ajax.getJSON(url.toString());
+
+            const claims = forkJoin(data.query.search.map(({ title }) => {
+              const url = new URL('https://www.wikidata.org/w/api.php');
+              url.searchParams.set('action', 'wbgetclaims');
+              url.searchParams.set('format', 'json');
+              url.searchParams.set('origin', '*');
+              url.searchParams.set('formatversion', 2);
+              url.searchParams.set('entity', title);
+              url.searchParams.set('property', id);
+              url.searchParams.set('props', '');
+
+              return forkJoin([of(title), ajax.getJSON(url.toString())]);
+            }));
+
+            return forkJoin([labels, claims]);
+          }),
+          map(([labels, claimCollection]) => {
+            const result = claimCollection.reduce((acc, [entityId, claimSet]) => {
+              if (
+                !claimSet
+                || !claimSet.claims
+                || !claimSet.claims[id]
+              ) {
+                return acc;
+              }
+
+              // Remove deprecated and sort by prefered.
+              const claims = claimSet.claims[id].filter(c => c.type !== 'deprecated').sort((a, b) => {
+                if (a.rank === 'preferred') {
+                  return 1;
+                }
+
+                if (b.rank === 'preferred') {
+                  return -1;
+                }
+
+                return 0;
+              });
+
+              if (claims.length === 0) {
+                return acc;
+              }
+
+              const claimValue = claims.pop().mainsnak.datavalue.value.toUpperCase();
+
+              let label;
+              if (
+                labels
+                && labels.entities
+                && labels.entities[entityId]
+                && labels.entities[entityId].labels
+                && labels.entities[entityId].labels.en
+                && labels.entities[entityId].labels.en.value
+              ) {
+                label = labels.entities[entityId].labels.en.value;
+              } else {
+                label = claimValue;
+              }
+
+              return [
+                ...acc,
+                {
+                  label,
+                  value: claimValue,
+                },
+              ];
+            }, []);
+
+            return {
+              type: 'searchResult',
+              field: type,
+              result,
+            };
+          }),
+          catchError(() => (
+            of({
+              type: 'searchResult',
+              field: type,
+            })
+          )),
+        ),
+      );
+    }),
+  );
+}
+
+const theaterSearch = createPropertySearch('theaters', 'P6644');
+const movieSearch = createPropertySearch('movies', 'P5693');
 
 async function resultFilter(result, type) {
   const data = await frame(result, {
@@ -382,6 +562,32 @@ function Index() {
       valid: null,
     })
   );
+
+  const createInputHandler = (type) => {
+    let search;
+    switch (type) {
+      case 'theaters':
+        search = theaterSearch;
+        break;
+      case 'movies':
+        search = movieSearch;
+        break;
+      default:
+        throw new Error('Unknown Type');
+    }
+
+    return input => search.next(input);
+  };
+
+  useEffect(() => {
+    theaterSearch.subscribe(action => dispatch(action));
+    movieSearch.subscribe(action => dispatch(action));
+
+    return () => {
+      theaterSearch.unsubscribe();
+      movieSearch.unsubscribe();
+    };
+  }, []);
 
   // Update the query
   // @TODO Pass this in with server rendering!
@@ -517,13 +723,13 @@ function Index() {
   const today = now.toFormat('yyyy-MM-dd');
 
   const movieOptions = useMemo(
-    () => getOptions(state.movies, state.fields.movies),
-    [state.movies, state.fields.movies],
+    () => getOptions(state.movies, state.fields.movies, state.search.movies.result),
+    [state.movies, state.fields.movies, state.search.movies.result],
   );
 
   const theaterOptions = useMemo(
-    () => getOptions(state.theaters, state.fields.theaters),
-    [state.theaters, state.fields.theaters],
+    () => getOptions(state.theaters, state.fields.theaters, state.search.theaters.result),
+    [state.theaters, state.fields.theaters, state.search.theaters.result],
   );
 
   const propsOptions = useMemo(
@@ -851,6 +1057,8 @@ function Index() {
               classNamePrefix="select"
               value={state.fields.theaters.map(id => theaterOptions.find(({ value }) => id === value))}
               onChange={handleListChange('theaters')}
+              onInputChange={createInputHandler('theaters')}
+              isLoading={state.search.theaters.fetching}
               isMulti
             />
           </div>
@@ -872,6 +1080,8 @@ function Index() {
               classNamePrefix="select"
               value={state.fields.movies.map(id => movieOptions.find(({ value }) => id === value))}
               onChange={handleListChange('movies')}
+              onInputChange={createInputHandler('movies')}
+              isLoading={state.search.movies.fetching}
               isMulti
             />
           </div>
