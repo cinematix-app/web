@@ -369,7 +369,7 @@ function createPropertySearch(type, id) {
               });
             }
 
-            if (!data.query.search) {
+            if (!data.query.search || data.query.search.length === 0) {
               return of({
                 type: 'searchResult',
                 field: type,
@@ -400,65 +400,66 @@ function createPropertySearch(type, id) {
               return forkJoin([of(title), ajax.getJSON(url.toString())]);
             }));
 
-            return forkJoin([labels, claims]);
-          }),
-          map(([labels, claimCollection]) => {
-            const result = claimCollection.reduce((acc, [entityId, claimSet]) => {
-              if (
-                !claimSet
-                || !claimSet.claims
-                || !claimSet.claims[id]
-              ) {
-                return acc;
-              }
+            return forkJoin([labels, claims]).pipe(
+              map(([labels, claimCollection]) => {
+                const result = claimCollection.reduce((acc, [entityId, claimSet]) => {
+                  if (
+                    !claimSet
+                    || !claimSet.claims
+                    || !claimSet.claims[id]
+                  ) {
+                    return acc;
+                  }
 
-              // Remove deprecated and sort by prefered.
-              const claims = claimSet.claims[id].filter(c => c.type !== 'deprecated').sort((a, b) => {
-                if (a.rank === 'preferred') {
-                  return 1;
-                }
+                  // Remove deprecated and sort by prefered.
+                  const claims = claimSet.claims[id].filter(c => c.type !== 'deprecated').sort((a, b) => {
+                    if (a.rank === 'preferred') {
+                      return 1;
+                    }
 
-                if (b.rank === 'preferred') {
-                  return -1;
-                }
+                    if (b.rank === 'preferred') {
+                      return -1;
+                    }
 
-                return 0;
-              });
+                    return 0;
+                  });
 
-              if (claims.length === 0) {
-                return acc;
-              }
+                  if (claims.length === 0) {
+                    return acc;
+                  }
 
-              const claimValue = claims.pop().mainsnak.datavalue.value.toUpperCase();
+                  const claimValue = claims.pop().mainsnak.datavalue.value.toUpperCase();
 
-              let label;
-              if (
-                labels
-                && labels.entities
-                && labels.entities[entityId]
-                && labels.entities[entityId].labels
-                && labels.entities[entityId].labels.en
-                && labels.entities[entityId].labels.en.value
-              ) {
-                label = labels.entities[entityId].labels.en.value;
-              } else {
-                label = claimValue;
-              }
+                  let label;
+                  if (
+                    labels
+                    && labels.entities
+                    && labels.entities[entityId]
+                    && labels.entities[entityId].labels
+                    && labels.entities[entityId].labels.en
+                    && labels.entities[entityId].labels.en.value
+                  ) {
+                    label = labels.entities[entityId].labels.en.value;
+                  } else {
+                    label = claimValue;
+                  }
 
-              return [
-                ...acc,
-                {
-                  label,
-                  value: claimValue,
-                },
-              ];
-            }, []);
+                  return [
+                    ...acc,
+                    {
+                      label,
+                      value: claimValue,
+                    },
+                  ];
+                }, []);
 
-            return {
-              type: 'searchResult',
-              field: type,
-              result,
-            };
+                return {
+                  type: 'searchResult',
+                  field: type,
+                  result,
+                };
+              }),
+            );
           }),
           catchError(() => (
             of({
