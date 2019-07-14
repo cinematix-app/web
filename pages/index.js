@@ -659,7 +659,6 @@ function Index() {
       ticketing,
       startDate,
       theaters: theater === 'include' ? theaters : [],
-      dispatch,
     });
   }, [
     state.fields.zipCode,
