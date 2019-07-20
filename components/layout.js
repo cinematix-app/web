@@ -10,10 +10,9 @@ function Layout({ children }) {
         <meta property="og:title" content="Cinematix" />
         <meta property="og:description" content="Find showtimes and buy movie tickets fast." />
         <meta property="og:url" content="https://cinematix.app/" />
-        <meta property="og:image" content="https://cinematix.app/static/og.png" />
+        <meta property="og:image" content="https://cinematix.app/static/og2.png" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:image" content="https://cinematix.app/static/twitter.png" />
       </Head>
       <header className="pt-2 pb-2 mb-4">
         <div className="container">
