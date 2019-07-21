@@ -33,6 +33,7 @@ const initialState = {
     limit: '5',
     ticketing: 'both',
     startDate: 'today',
+    endDate: 'today',
     theater: 'include',
     theaters: [],
     movie: 'include',
@@ -113,6 +114,17 @@ function mergeList(existingList, newList) {
   return [...list.values()];
 }
 
+function getDateTime(date) {
+  switch (date) {
+    case 'today':
+      return DateTime.local().startOf('day');
+    case 'tomorrow':
+      return DateTime.local().startOf('day').plus({ days: 1 });
+    default:
+      return DateTime.fromFormat(date, 'yyyy-MM-dd');
+  }
+}
+
 function resultReducer(state, action) {
   if (action.type !== 'result') {
     return state;
@@ -143,16 +155,51 @@ function resultReducer(state, action) {
   };
 }
 
+function changeReducer(state, action) {
+  if (action.type !== 'change') {
+    return state;
+  }
+
+  // If the startDate changes, move the endDate along to prevent an error.
+  if (action.name === 'startDate') {
+    let end = state.fields.endDate;
+    const startDate = getDateTime(action.value);
+    const endDate = getDateTime(state.fields.endDate);
+
+    // Move endDate forward.
+    if (startDate > endDate) {
+      end = action.value;
+    } else {
+      const range = startDate.plus({ days: 7 });
+      // move endDate backwards.
+      if (range < endDate) {
+        end = range.toFormat('yyyy-MM-dd');
+      }
+    }
+
+    return {
+      ...state,
+      fields: {
+        ...state.fields,
+        [action.name]: action.value,
+        endDate: end,
+      },
+    };
+  }
+
+  return {
+    ...state,
+    fields: {
+      ...state.fields,
+      [action.name]: action.value,
+    },
+  };
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case 'change':
-      return {
-        ...state,
-        fields: {
-          ...state.fields,
-          [action.name]: action.value,
-        },
-      };
+      return changeReducer(state, action);
     case 'result':
       return resultReducer(state, action);
     case 'status':
@@ -300,6 +347,7 @@ const query = (new Subject()).pipe(
     && z.limit === y.limit
     && z.ticketing === y.ticketing
     && z.startDate === y.startDate
+    && z.endDate === y.endDate
     && z.theaters === y.theaters
   )),
   switchMap((q) => {
@@ -334,6 +382,19 @@ const query = (new Subject()).pipe(
         url.searchParams.set('startDate', q.startDate);
         break;
     }
+
+    switch (q.endDate) {
+      case 'today':
+        url.searchParams.set('endDate', DateTime.local().toFormat('yyyy-MM-dd'));
+        break;
+      case 'tomorrow':
+        url.searchParams.set('endDate', DateTime.local().plus({ days: 1 }).toFormat('yyyy-MM-dd'));
+        break;
+      default:
+        url.searchParams.set('endDate', q.endDate);
+        break;
+    }
+
 
     return merge(
       of({
@@ -544,7 +605,6 @@ function displayFilter(include, exclude, data) {
   return true;
 }
 
-
 const ticketingOptions = [
   { value: 'both', label: 'Both' },
   { value: 'online', label: 'Online' },
@@ -552,6 +612,8 @@ const ticketingOptions = [
 ];
 
 const propKeys = ['props', 'propsx'];
+
+const quickDates = ['today', 'tomorrow'];
 
 function Index() {
   const formRef = useRef(null);
@@ -649,6 +711,7 @@ function Index() {
       limit,
       ticketing,
       startDate,
+      endDate,
       theater,
       theaters,
     } = state.fields;
@@ -658,6 +721,7 @@ function Index() {
       limit,
       ticketing,
       startDate,
+      endDate,
       theaters: theater === 'include' ? theaters : [],
     });
   }, [
@@ -665,6 +729,7 @@ function Index() {
     state.fields.limit,
     state.fields.ticketing,
     state.fields.startDate,
+    state.fields.endDate,
     state.fields.theater,
     state.fields.theaters,
   ]);
@@ -702,6 +767,7 @@ function Index() {
     state.fields.limit,
     state.fields.ticketing,
     state.fields.startDate,
+    state.fields.endDate,
     state.fields.theater,
     state.fields.theaters,
     state.fields.movie,
@@ -710,8 +776,8 @@ function Index() {
     state.fields.propsx,
   ]);
 
-  const now = DateTime.local();
-  const today = now.toFormat('yyyy-MM-dd');
+  const today = DateTime.local().startOf('day');
+  const todayFormatted = useMemo(() => today.toFormat('yyyy-MM-dd'), [today.valueOf()]);
 
   const movieOptions = useMemo(
     () => getOptions(state.movies, state.fields.movies, state.search.movies.result),
@@ -892,7 +958,7 @@ function Index() {
         hour: 'numeric',
         minute: 'numeric',
       };
-      const timeFormat = startDate > now.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
+      const timeFormat = startDate > today.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
 
       return (
         <div key={showtime['@id']} className="row align-items-center mb-2 mb-md-0">
@@ -953,9 +1019,36 @@ function Index() {
     state.fields.propsx,
   ]);
 
-  const customStartDate = !['today', 'tomorrow'].includes(state.fields.startDate);
+  const customStartDate = useMemo(
+    () => !quickDates.includes(state.fields.startDate),
+    [state.fields.startDate],
+  );
+  const customEndDate = useMemo(
+    () => !quickDates.includes(state.fields.endDate),
+    [state.fields.endDate],
+  );
 
-  const dayAfterTomorrow = now.plus({ days: 2 }).toFormat('yyyy-MM-dd');
+  const startDate = useMemo(() => getDateTime(state.fields.startDate), [state.fields.startDate]);
+  const startDateFormatted = useMemo(() => startDate.toFormat('yyyy-MM-dd'), [startDate]);
+  const maxEnd = useMemo(() => startDate.plus({ days: 7 }), [startDate.valueOf()]);
+  const maxEndFormatted = useMemo(() => maxEnd.toFormat('yyyy-MM-dd'), [maxEnd.valueOf()]);
+  const endDateTodayDisabled = useMemo(() => {
+    if (startDate > today) {
+      return true;
+    }
+
+    return false;
+  }, [startDate.valueOf(), today.valueOf()]);
+
+  const endDateTomorrowDisabled = useMemo(() => {
+    if (startDate > today.plus({ days: 1 })) {
+      return true;
+    }
+
+    return false;
+  }, [startDate.valueOf(), today.valueOf()]);
+
+  const dayAfterTomorrowFormatted = useMemo(() => today.plus({ days: 2 }).toFormat('yyyy-MM-dd'), [today.valueOf()]);
 
   return (
     <Layout>
@@ -1008,13 +1101,13 @@ function Index() {
           </div>
         </div>
         <div className="row form-group">
-          <label className="col-2 col-lg-1 col-form-label" htmlFor="startDate">Date</label>
+          <label className="col-2 col-lg-1 col-form-label" htmlFor="startDate">Start</label>
           <div className="input-group col-md col-12 flex-md-nowrap">
             <div className="input-group-prepend w-100 w-md-auto">
               <div className="btn-group w-100 w-md-auto" role="group">
                 <button type="button" name="startDate" value="today" onClick={handleChange} aria-pressed={state.fields.startDate === 'today'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.startDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
                 <button type="button" name="startDate" value="tomorrow" onClick={handleChange} aria-pressed={state.fields.startDate === 'tomorrow'} className={['btn', 'btn-outline-secondary', state.fields.startDate === 'tomorrow' ? 'active' : ''].join(' ')}>Tomorrow</button>
-                <button type="button" name="startDate" value={dayAfterTomorrow} onClick={handleChange} aria-pressed={customStartDate} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', customStartDate ? 'active' : ''].join(' ')}>Other</button>
+                <button type="button" name="startDate" value={dayAfterTomorrowFormatted} onClick={handleChange} aria-pressed={customStartDate} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', customStartDate ? 'active' : ''].join(' ')}>Other</button>
               </div>
             </div>
             <input
@@ -1022,9 +1115,33 @@ function Index() {
               type="date"
               id="startDate"
               name="startDate"
-              min={today}
+              min={todayFormatted}
               value={customStartDate ? state.fields.startDate : ''}
               disabled={!customStartDate}
+              onChange={handleChange}
+              required
+            />
+          </div>
+        </div>
+        <div className="row form-group">
+          <label className="col-2 col-lg-1 col-form-label" htmlFor="endDate">End</label>
+          <div className="input-group col-md col-12 flex-md-nowrap">
+            <div className="input-group-prepend w-100 w-md-auto">
+              <div className="btn-group w-100 w-md-auto" role="group">
+                <button type="button" name="endDate" value="today" onClick={handleChange} disabled={endDateTodayDisabled} aria-pressed={state.fields.endDate === 'today'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.endDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
+                <button type="button" name="endDate" value="tomorrow" onClick={handleChange} disabled={endDateTomorrowDisabled} aria-pressed={state.fields.endDate === 'tomorrow'} className={['btn', 'btn-outline-secondary', state.fields.endDate === 'tomorrow' ? 'active' : ''].join(' ')}>Tomorrow</button>
+                <button type="button" name="endDate" value={dayAfterTomorrowFormatted} onClick={handleChange} aria-pressed={customStartDate} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', customEndDate ? 'active' : ''].join(' ')}>Other</button>
+              </div>
+            </div>
+            <input
+              className="form-control rounded-bottom rounded-top-0 rounded-md-left-0 rounded-md-right"
+              type="date"
+              id="endDate"
+              name="endDate"
+              min={startDateFormatted}
+              max={maxEndFormatted}
+              value={customEndDate ? state.fields.endDate : ''}
+              disabled={!customEndDate}
               onChange={handleChange}
               required
             />
