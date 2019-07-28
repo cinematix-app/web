@@ -22,7 +22,7 @@ import {
   filter,
 } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
-import { DateTime } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 import { frame } from 'jsonld';
 import Select from 'react-select';
 import Layout from '../components/layout';
@@ -33,7 +33,9 @@ const initialState = {
     limit: '5',
     ticketing: 'both',
     startDate: 'today',
+    startTime: '',
     endDate: 'today',
+    endTime: '',
     theater: 'include',
     theaters: [],
     movie: 'include',
@@ -767,7 +769,9 @@ function Index() {
     state.fields.limit,
     state.fields.ticketing,
     state.fields.startDate,
+    state.fields.startTime,
     state.fields.endDate,
+    state.fields.endTime,
     state.fields.theater,
     state.fields.theaters,
     state.fields.movie,
@@ -797,6 +801,13 @@ function Index() {
     () => getPropOptions(state.props, state.fields.propsx),
     [state.props, state.fields.propsx],
   );
+
+  const startTime = useMemo(() => (
+    state.fields.startTime ? DateTime.fromISO(state.fields.startTime) : null
+  ), [state.fields.startTime]);
+  const endTime = useMemo(() => (
+    state.fields.endTime ? DateTime.fromISO(state.fields.endTime) : null
+  ), [state.fields.endTime]);
 
   const showtimes = useMemo(() => {
     if (state.status === 'error') {
@@ -854,6 +865,7 @@ function Index() {
       offers,
       workPresented,
       props,
+      startDate,
     }) => {
       if (offers.availability === 'https://schema.org/Discontinued') {
         return false;
@@ -887,6 +899,42 @@ function Index() {
         props,
       )) {
         return false;
+      }
+
+      if (startTime || endTime) {
+        const showStart = DateTime.fromISO(startDate);
+
+        if (startTime) {
+          const showSet = {
+            year: showStart.get('year'),
+            month: showStart.get('month'),
+            day: showStart.get('day'),
+          };
+
+          // Ensure that the show starts after the start time, even if it's on a different day.
+          if (showStart < startTime.set(showSet)) {
+            return false;
+          }
+        }
+
+        if (endTime) {
+          // Use the duration of the movie to determine the end, assume 20 minutes of previews.
+          const showEnd = showStart.plus(
+            Duration.fromISO(workPresented.duration),
+          ).plus({ minutes: 20 });
+          const showSet = {
+            year: showStart.get('year'),
+            month: showStart.get('month'),
+            day: showStart.get('day'),
+          };
+          const realEnd = startTime && endTime < startTime
+            ? endTime.set(showSet).plus({ days: 1 })
+            : endTime.set(showSet);
+
+          if (showEnd > realEnd) {
+            return false;
+          }
+        }
       }
 
       return true;
@@ -1017,6 +1065,8 @@ function Index() {
     state.fields.movies,
     state.fields.props,
     state.fields.propsx,
+    state.fields.startTime,
+    state.fields.endTime,
   ]);
 
   const customStartDate = useMemo(
@@ -1102,7 +1152,7 @@ function Index() {
         </div>
         <div className="row form-group">
           <label className="col-2 col-lg-1 col-form-label" htmlFor="startDate">Start</label>
-          <div className="input-group col-md col-12 flex-md-nowrap">
+          <div className="input-group col-md-7 col-lg-8 col-12 flex-md-nowrap">
             <div className="input-group-prepend w-100 w-md-auto">
               <div className="btn-group w-100 w-md-auto" role="group">
                 <button type="button" name="startDate" value="today" onClick={handleChange} aria-pressed={state.fields.startDate === 'today'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.startDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
@@ -1111,7 +1161,7 @@ function Index() {
               </div>
             </div>
             <input
-              className="form-control rounded-bottom rounded-top-0 rounded-md-left-0 rounded-md-right"
+              className="form-control rounded-0 rounded-md-left-0 rounded-md-right"
               type="date"
               id="startDate"
               name="startDate"
@@ -1119,13 +1169,27 @@ function Index() {
               value={customStartDate ? state.fields.startDate : ''}
               disabled={!customStartDate}
               onChange={handleChange}
+              placeholder="YYYY-MM-DD"
+              pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
               required
+            />
+          </div>
+          <div className="input-group col-md-3 col-lg-3 col-12 flex-md-nowrap">
+            <input
+              className="form-control rounded-bottom rounded-top-0 rounded-md"
+              type="time"
+              id="startTime"
+              name="startTime"
+              value={state.fields.startTime}
+              placeholder="HH:MM"
+              pattern="[0-9]{2}:[0-9]{2}"
+              onChange={handleChange}
             />
           </div>
         </div>
         <div className="row form-group">
           <label className="col-2 col-lg-1 col-form-label" htmlFor="endDate">End</label>
-          <div className="input-group col-md col-12 flex-md-nowrap">
+          <div className="input-group col-md-7 col-lg-8 col-12 flex-md-nowrap">
             <div className="input-group-prepend w-100 w-md-auto">
               <div className="btn-group w-100 w-md-auto" role="group">
                 <button type="button" name="endDate" value="today" onClick={handleChange} disabled={endDateTodayDisabled} aria-pressed={state.fields.endDate === 'today'} className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.endDate === 'today' ? 'active' : ''].join(' ')}>Today</button>
@@ -1134,7 +1198,7 @@ function Index() {
               </div>
             </div>
             <input
-              className="form-control rounded-bottom rounded-top-0 rounded-md-left-0 rounded-md-right"
+              className="form-control rounded-0 rounded-md-left-0 rounded-md-right"
               type="date"
               id="endDate"
               name="endDate"
@@ -1143,7 +1207,21 @@ function Index() {
               value={customEndDate ? state.fields.endDate : ''}
               disabled={!customEndDate}
               onChange={handleChange}
+              placeholder="YYYY-MM-DD"
+              pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
               required
+            />
+          </div>
+          <div className="input-group col-md-3 col-lg-3 col-12 flex-md-nowrap">
+            <input
+              className="form-control rounded-bottom rounded-top-0 rounded-md"
+              type="time"
+              id="endTime"
+              name="endTime"
+              value={state.fields.endTime}
+              placeholder="HH:MM"
+              pattern="[0-9]{2}:[0-9]{2}"
+              onChange={handleChange}
             />
           </div>
         </div>

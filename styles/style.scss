@@ -49,6 +49,14 @@ input[disabled] {
             width: auto !important;
         }
 
+        .rounded#{$infix},
+        .rounded#{$infix} .select__control {
+            border-top-left-radius: $border-radius !important;
+            border-top-right-radius: $border-radius !important;
+            border-bottom-right-radius: $border-radius !important;
+            border-bottom-left-radius: $border-radius !important;
+        }
+
         .rounded#{$infix}-0,
         .rounded#{$infix}-0 .select__control {
             border-top-left-radius: 0 !important;
