@@ -120,6 +120,12 @@ function mergeList(existingList, newList) {
   return [...list.values()];
 }
 
+/**
+ * Get DateTime
+ *
+ * @param {string} date
+ * @return {DateTime}
+ */
 function getDateTime(date) {
   switch (date) {
     case 'today':
@@ -128,6 +134,33 @@ function getDateTime(date) {
       return DateTime.local().startOf('day').plus({ days: 1 });
     default:
       return DateTime.fromFormat(date, dateFormat);
+  }
+}
+
+/**
+ * Get today
+ *
+ * @param {string} today
+ * @return {DateTime}
+ */
+function getTodayDateTime(today) {
+  return today ? DateTime.fromFormat(today, dateFormat).startOf('day') : DateTime.local().startOf('day');
+}
+
+/**
+ * Get datetime string
+ *
+ * @param {string} date
+ * @return {string}
+ */
+function getFormattedDateTime(date) {
+  switch (date) {
+    case 'today':
+      return DateTime.local().startOf('day').toFormat(dateFormat);
+    case 'tomorrow':
+      return DateTime.local().startOf('day').plus({ days: 1 }).toFormat(dateFormat);
+    default:
+      return date;
   }
 }
 
@@ -357,8 +390,8 @@ const query = (new Subject()).pipe(
     z.zipCode === y.zipCode
     && z.limit === y.limit
     && z.ticketing === y.ticketing
-    && z.startDate.valueOf() === y.startDate.valueOf()
-    && z.endDate.valueOf() === y.endDate.valueOf()
+    && z.startDate === y.startDate
+    && z.endDate === y.endDate
     && z.theaters === y.theaters
   )),
   switchMap((q) => {
@@ -382,8 +415,8 @@ const query = (new Subject()).pipe(
 
     // Always set the start date to ensure the correct results are returned.
     // They might not be correct because of timezones. :(
-    url.searchParams.set('startDate', q.startDate.toFormat(dateFormat));
-    url.searchParams.set('endDate', q.endDate.toFormat(dateFormat));
+    url.searchParams.set('startDate', q.startDate);
+    url.searchParams.set('endDate', q.endDate);
 
     return merge(
       of({
@@ -604,17 +637,17 @@ const propKeys = ['props', 'propsx'];
 
 const quickDates = ['today', 'tomorrow'];
 
+const locaitonFields = [
+  'zipCode',
+  'limit',
+  'ticketing',
+];
+
 function Index() {
   const formRef = useRef(null);
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const locationDisabled = state.fields.theater === 'include' && state.fields.theaters.length > 0;
-
-  const locaitonFields = [
-    'zipCode',
-    'limit',
-    'ticketing',
-  ];
 
   const handleChange = ({ target }) => {
     dispatch({
@@ -694,11 +727,12 @@ function Index() {
   }, []);
 
   const startDate = useMemo(
-    () => getDateTime(state.fields.startDate),
+    () => getFormattedDateTime(state.fields.startDate),
     [state.today, state.fields.startDate],
   );
+
   const endDate = useMemo(
-    () => getDateTime(state.fields.endDate),
+    () => getFormattedDateTime(state.fields.endDate),
     [state.today, state.fields.endDate],
   );
 
@@ -726,8 +760,8 @@ function Index() {
     state.fields.ticketing,
     state.fields.theater,
     state.fields.theaters,
-    startDate.valueOf(),
-    endDate.valueOf(),
+    startDate,
+    endDate,
   ]);
 
   // Update the route.
@@ -787,10 +821,6 @@ function Index() {
     return () => sub.unsubscribe();
   }, []);
 
-  const today = useMemo(() => (
-    state.today ? DateTime.fromFormat(state.today, dateFormat) : DateTime.local()
-  ), [state.today]);
-
   const movieOptions = useMemo(
     () => getOptions(state.movies, state.fields.movies, state.search.movies.result),
     [state.movies, state.fields.movies, state.search.movies.result],
@@ -818,6 +848,7 @@ function Index() {
   ), [state.fields.endTime]);
 
   const showtimes = useMemo(() => {
+    const today = getTodayDateTime(state.today);
     if (state.status === 'error') {
       return (
         <div className="alert alert-danger" role="alert">
@@ -1066,6 +1097,7 @@ function Index() {
   }, [
     state.status,
     state.error,
+    state.today,
     state.showtimes,
     state.fields.theater,
     state.fields.theaters,
@@ -1086,28 +1118,28 @@ function Index() {
     [state.fields.endDate],
   );
 
-  const startDateFormatted = useMemo(() => startDate.toFormat(dateFormat), [startDate.valueOf()]);
-  const maxEnd = useMemo(() => startDate.plus({ days: 7 }), [startDate.valueOf()]);
-  const maxEndFormatted = useMemo(() => maxEnd.toFormat(dateFormat), [maxEnd.valueOf()]);
-  const endDateTodayDisabled = useMemo(() => {
-    if (startDate > today) {
-      return true;
-    }
+  const maxEndFormatted = useMemo(() => {
+    const start = DateTime.fromFormat(startDate, dateFormat).startOf('day');
 
-    return false;
-  }, [startDate.valueOf(), today.valueOf()]);
+    return start.plus({ days: 7 }).toFormat(dateFormat);
+  }, [startDate]);
 
-  const endDateTomorrowDisabled = useMemo(() => {
-    if (startDate > today.plus({ days: 1 })) {
-      return true;
-    }
+  const {
+    endDateTodayDisabled,
+    endDateTomorrowDisabled,
+  } = useMemo(() => {
+    const start = DateTime.fromFormat(startDate, dateFormat).startOf('day');
+    const today = getTodayDateTime(state.today);
 
-    return false;
-  }, [startDate.valueOf(), today.valueOf()]);
+    return {
+      endDateTodayDisabled: start > today,
+      endDateTomorrowDisabled: start > today.plus({ days: 1 }),
+    };
+  }, [state.today, startDate]);
 
   const dayAfterTomorrowFormatted = useMemo(
-    () => today.plus({ days: 2 }).toFormat(dateFormat),
-    [today.valueOf()],
+    () => getTodayDateTime(state.today).plus({ days: 2 }).toFormat(dateFormat),
+    [state.today],
   );
 
   return (
@@ -1175,7 +1207,7 @@ function Index() {
               type="date"
               id="startDate"
               name="startDate"
-              min={state.today}
+              min={state.today || ''}
               value={customStartDate ? state.fields.startDate : ''}
               disabled={!customStartDate}
               onChange={handleChange}
@@ -1212,7 +1244,7 @@ function Index() {
               type="date"
               id="endDate"
               name="endDate"
-              min={startDateFormatted}
+              min={startDate}
               max={maxEndFormatted}
               value={customEndDate ? state.fields.endDate : ''}
               disabled={!customEndDate}
