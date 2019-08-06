@@ -11,6 +11,7 @@ import {
   of,
   merge,
   forkJoin,
+  timer,
 } from 'rxjs';
 import {
   switchMap,
@@ -43,6 +44,7 @@ const initialState = {
     props: [],
     propsx: [],
   },
+  today: null,
   showtimes: [],
   theaters: [],
   movies: [],
@@ -97,6 +99,8 @@ function textToCollection(text, data) {
   });
 }
 
+const dateFormat = 'yyyy-MM-dd';
+
 /**
  * Take an existing list and a new list and merge them updating
  * the existing items and adding new items, but not discarding anything.
@@ -123,7 +127,7 @@ function getDateTime(date) {
     case 'tomorrow':
       return DateTime.local().startOf('day').plus({ days: 1 });
     default:
-      return DateTime.fromFormat(date, 'yyyy-MM-dd');
+      return DateTime.fromFormat(date, dateFormat);
   }
 }
 
@@ -175,7 +179,7 @@ function changeReducer(state, action) {
       const range = startDate.plus({ days: 7 });
       // move endDate backwards.
       if (range < endDate) {
-        end = range.toFormat('yyyy-MM-dd');
+        end = range.toFormat(dateFormat);
       }
     }
 
@@ -214,6 +218,11 @@ function reducer(state, action) {
         ...state,
         status: 'error',
         error: action.error,
+      };
+    case 'today':
+      return {
+        ...state,
+        today: action.value,
       };
     case 'searchFetch':
       return {
@@ -375,10 +384,10 @@ const query = (new Subject()).pipe(
     // They might not be correct because of timezones. :(
     switch (q.startDate) {
       case 'today':
-        url.searchParams.set('startDate', DateTime.local().toFormat('yyyy-MM-dd'));
+        url.searchParams.set('startDate', DateTime.local().toFormat(dateFormat));
         break;
       case 'tomorrow':
-        url.searchParams.set('startDate', DateTime.local().plus({ days: 1 }).toFormat('yyyy-MM-dd'));
+        url.searchParams.set('startDate', DateTime.local().plus({ days: 1 }).toFormat(dateFormat));
         break;
       default:
         url.searchParams.set('startDate', q.startDate);
@@ -387,10 +396,10 @@ const query = (new Subject()).pipe(
 
     switch (q.endDate) {
       case 'today':
-        url.searchParams.set('endDate', DateTime.local().toFormat('yyyy-MM-dd'));
+        url.searchParams.set('endDate', DateTime.local().toFormat(dateFormat));
         break;
       case 'tomorrow':
-        url.searchParams.set('endDate', DateTime.local().plus({ days: 1 }).toFormat('yyyy-MM-dd'));
+        url.searchParams.set('endDate', DateTime.local().plus({ days: 1 }).toFormat(dateFormat));
         break;
       default:
         url.searchParams.set('endDate', q.endDate);
@@ -780,8 +789,22 @@ function Index() {
     state.fields.propsx,
   ]);
 
-  const today = DateTime.local().startOf('day');
-  const todayFormatted = useMemo(() => today.toFormat('yyyy-MM-dd'), [today.valueOf()]);
+  // Update "today" at midnight each day.
+  useEffect(() => {
+    const now = DateTime.local();
+    const obs = timer(now.plus({ days: 1 }).startOf('day') - now, 24 * 60 * 60 * 1000);
+    dispatch({ type: 'today', value: now.toFormat(dateFormat) });
+
+    const sub = obs.subscribe(() => {
+      dispatch({ type: 'today', value: DateTime.local().toFormat(dateFormat) });
+    });
+
+    return () => sub.unsubscribe();
+  }, []);
+
+  const today = useMemo(() => (
+    state.today ? DateTime.fromFormat(state.today, dateFormat) : DateTime.local()
+  ), [state.today]);
 
   const movieOptions = useMemo(
     () => getOptions(state.movies, state.fields.movies, state.search.movies.result),
@@ -1079,9 +1102,9 @@ function Index() {
   );
 
   const startDate = useMemo(() => getDateTime(state.fields.startDate), [state.fields.startDate]);
-  const startDateFormatted = useMemo(() => startDate.toFormat('yyyy-MM-dd'), [startDate]);
+  const startDateFormatted = useMemo(() => startDate.toFormat(dateFormat), [startDate]);
   const maxEnd = useMemo(() => startDate.plus({ days: 7 }), [startDate.valueOf()]);
-  const maxEndFormatted = useMemo(() => maxEnd.toFormat('yyyy-MM-dd'), [maxEnd.valueOf()]);
+  const maxEndFormatted = useMemo(() => maxEnd.toFormat(dateFormat), [maxEnd.valueOf()]);
   const endDateTodayDisabled = useMemo(() => {
     if (startDate > today) {
       return true;
@@ -1098,7 +1121,7 @@ function Index() {
     return false;
   }, [startDate.valueOf(), today.valueOf()]);
 
-  const dayAfterTomorrowFormatted = useMemo(() => today.plus({ days: 2 }).toFormat('yyyy-MM-dd'), [today.valueOf()]);
+  const dayAfterTomorrowFormatted = useMemo(() => today.plus({ days: 2 }).toFormat(dateFormat), [today.valueOf()]);
 
   return (
     <Layout>
@@ -1165,7 +1188,7 @@ function Index() {
               type="date"
               id="startDate"
               name="startDate"
-              min={todayFormatted}
+              min={state.today}
               value={customStartDate ? state.fields.startDate : ''}
               disabled={!customStartDate}
               onChange={handleChange}
