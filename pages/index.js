@@ -357,8 +357,8 @@ const query = (new Subject()).pipe(
     z.zipCode === y.zipCode
     && z.limit === y.limit
     && z.ticketing === y.ticketing
-    && z.startDate === y.startDate
-    && z.endDate === y.endDate
+    && z.startDate.valueOf() === y.startDate.valueOf()
+    && z.endDate.valueOf() === y.endDate.valueOf()
     && z.theaters === y.theaters
   )),
   switchMap((q) => {
@@ -382,30 +382,8 @@ const query = (new Subject()).pipe(
 
     // Always set the start date to ensure the correct results are returned.
     // They might not be correct because of timezones. :(
-    switch (q.startDate) {
-      case 'today':
-        url.searchParams.set('startDate', DateTime.local().toFormat(dateFormat));
-        break;
-      case 'tomorrow':
-        url.searchParams.set('startDate', DateTime.local().plus({ days: 1 }).toFormat(dateFormat));
-        break;
-      default:
-        url.searchParams.set('startDate', q.startDate);
-        break;
-    }
-
-    switch (q.endDate) {
-      case 'today':
-        url.searchParams.set('endDate', DateTime.local().toFormat(dateFormat));
-        break;
-      case 'tomorrow':
-        url.searchParams.set('endDate', DateTime.local().plus({ days: 1 }).toFormat(dateFormat));
-        break;
-      default:
-        url.searchParams.set('endDate', q.endDate);
-        break;
-    }
-
+    url.searchParams.set('startDate', q.startDate.toFormat(dateFormat));
+    url.searchParams.set('endDate', q.endDate.toFormat(dateFormat));
 
     return merge(
       of({
@@ -715,14 +693,15 @@ function Index() {
     }
   }, []);
 
+  const startDate = useMemo(() => getDateTime(state.fields.startDate), [state.today, state.fields.startDate]);
+  const endDate = useMemo(() => getDateTime(state.fields.endDate), [state.today, state.fields.endDate]);
+
   // Update the query.
   useEffect(() => {
     const {
       zipCode,
       limit,
       ticketing,
-      startDate,
-      endDate,
       theater,
       theaters,
     } = state.fields;
@@ -739,10 +718,10 @@ function Index() {
     state.fields.zipCode,
     state.fields.limit,
     state.fields.ticketing,
-    state.fields.startDate,
-    state.fields.endDate,
     state.fields.theater,
     state.fields.theaters,
+    startDate.valueOf(),
+    endDate.valueOf(),
   ]);
 
   // Update the route.
@@ -1101,7 +1080,6 @@ function Index() {
     [state.fields.endDate],
   );
 
-  const startDate = useMemo(() => getDateTime(state.fields.startDate), [state.fields.startDate]);
   const startDateFormatted = useMemo(() => startDate.toFormat(dateFormat), [startDate]);
   const maxEnd = useMemo(() => startDate.plus({ days: 7 }), [startDate.valueOf()]);
   const maxEndFormatted = useMemo(() => maxEnd.toFormat(dateFormat), [maxEnd.valueOf()]);
