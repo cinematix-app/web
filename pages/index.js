@@ -693,8 +693,14 @@ function Index() {
     }
   }, []);
 
-  const startDate = useMemo(() => getDateTime(state.fields.startDate), [state.today, state.fields.startDate]);
-  const endDate = useMemo(() => getDateTime(state.fields.endDate), [state.today, state.fields.endDate]);
+  const startDate = useMemo(
+    () => getDateTime(state.fields.startDate),
+    [state.today, state.fields.startDate],
+  );
+  const endDate = useMemo(
+    () => getDateTime(state.fields.endDate),
+    [state.today, state.fields.endDate],
+  );
 
   // Update the query.
   useEffect(() => {
@@ -867,7 +873,7 @@ function Index() {
       offers,
       workPresented,
       props,
-      startDate,
+      startDate: showtimeStartDate,
     }) => {
       if (offers.availability === 'https://schema.org/Discontinued') {
         return false;
@@ -904,7 +910,7 @@ function Index() {
       }
 
       if (startTime || endTime) {
-        const showStart = DateTime.fromISO(startDate);
+        const showStart = DateTime.fromISO(showtimeStartDate);
 
         if (startTime) {
           const showSet = {
@@ -1000,7 +1006,7 @@ function Index() {
         ];
       }
 
-      const startDate = DateTime.fromISO(showtime.startDate);
+      const showStart = DateTime.fromISO(showtime.startDate);
       const longFormat = {
         month: 'long',
         weekday: 'short',
@@ -1008,7 +1014,7 @@ function Index() {
         hour: 'numeric',
         minute: 'numeric',
       };
-      const timeFormat = startDate > today.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
+      const timeFormat = showStart > today.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
 
       return (
         <div key={showtime['@id']} className="row align-items-center mb-2 mb-md-0">
@@ -1021,8 +1027,8 @@ function Index() {
           {optionsDisplay}
           <div className={`col-md-${showtimeWidth} mb-2`}>
             <a className={className.join(' ')} href={showtime.offers.url}>
-              <time dateTime={startDate.toISO()}>
-                {startDate.toLocaleString(timeFormat)}
+              <time dateTime={showStart.toISO()}>
+                {showStart.toLocaleString(timeFormat)}
               </time>
             </a>
           </div>
@@ -1080,7 +1086,7 @@ function Index() {
     [state.fields.endDate],
   );
 
-  const startDateFormatted = useMemo(() => startDate.toFormat(dateFormat), [startDate]);
+  const startDateFormatted = useMemo(() => startDate.toFormat(dateFormat), [startDate.valueOf()]);
   const maxEnd = useMemo(() => startDate.plus({ days: 7 }), [startDate.valueOf()]);
   const maxEndFormatted = useMemo(() => maxEnd.toFormat(dateFormat), [maxEnd.valueOf()]);
   const endDateTodayDisabled = useMemo(() => {
@@ -1099,7 +1105,10 @@ function Index() {
     return false;
   }, [startDate.valueOf(), today.valueOf()]);
 
-  const dayAfterTomorrowFormatted = useMemo(() => today.plus({ days: 2 }).toFormat(dateFormat), [today.valueOf()]);
+  const dayAfterTomorrowFormatted = useMemo(
+    () => today.plus({ days: 2 }).toFormat(dateFormat),
+    [today.valueOf()],
+  );
 
   return (
     <Layout>
