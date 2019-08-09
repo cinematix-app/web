@@ -144,7 +144,7 @@ function getDateTime(date) {
  * @return {DateTime}
  */
 function getTodayDateTime(today) {
-  return today ? DateTime.fromFormat(today, dateFormat).startOf('day') : DateTime.local().startOf('day');
+  return today ? DateTime.fromFormat(today, dateFormat).startOf('day') : null;
 }
 
 /**
@@ -153,12 +153,14 @@ function getTodayDateTime(today) {
  * @param {string} date
  * @return {string}
  */
-function getFormattedDateTime(date) {
+function getFormattedDateTime(today, date) {
   switch (date) {
     case 'today':
-      return DateTime.local().startOf('day').toFormat(dateFormat);
+      return today;
     case 'tomorrow':
-      return DateTime.local().startOf('day').plus({ days: 1 }).toFormat(dateFormat);
+      return today
+        ? DateTime.fromFormat(today, dateFormat).plus({ days: 1 }).toFormat(dateFormat)
+        : null;
     default:
       return date;
   }
@@ -727,12 +729,12 @@ function Index() {
   }, []);
 
   const startDate = useMemo(
-    () => getFormattedDateTime(state.fields.startDate),
+    () => getFormattedDateTime(state.today, state.fields.startDate),
     [state.today, state.fields.startDate],
   );
 
   const endDate = useMemo(
-    () => getFormattedDateTime(state.fields.endDate),
+    () => getFormattedDateTime(state.today, state.fields.endDate),
     [state.today, state.fields.endDate],
   );
 
@@ -1119,6 +1121,9 @@ function Index() {
   );
 
   const maxEndFormatted = useMemo(() => {
+    if (!startDate) {
+      return null;
+    }
     const start = DateTime.fromFormat(startDate, dateFormat).startOf('day');
 
     return start.plus({ days: 7 }).toFormat(dateFormat);
@@ -1128,6 +1133,13 @@ function Index() {
     endDateTodayDisabled,
     endDateTomorrowDisabled,
   } = useMemo(() => {
+    if (!startDate || !state.today) {
+      return {
+        endDateTodayDisabled: false,
+        endDateTomorrowDisabled: false,
+      };
+    }
+
     const start = DateTime.fromFormat(startDate, dateFormat).startOf('day');
     const today = getTodayDateTime(state.today);
 
@@ -1138,7 +1150,11 @@ function Index() {
   }, [state.today, startDate]);
 
   const dayAfterTomorrowFormatted = useMemo(
-    () => getTodayDateTime(state.today).plus({ days: 2 }).toFormat(dateFormat),
+    () => {
+      const today = getTodayDateTime(state.today);
+
+      return today ? today.plus({ days: 2 }).toFormat(dateFormat) : '';
+    },
     [state.today],
   );
 
