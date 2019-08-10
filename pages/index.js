@@ -20,7 +20,7 @@ import {
   catchError,
   debounceTime,
   map,
-  filter,z
+  filter,
 } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime, Duration } from 'luxon';
