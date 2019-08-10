@@ -633,7 +633,7 @@ function Index() {
         startDate: start,
         endDate: end,
         theaters: theater === 'include' ? theaters : [],
-      })))
+      }))),
     ), initialState)
   ), dispatch, [
     state.fields.zipCode,
