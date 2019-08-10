@@ -23,14 +23,15 @@ import {
 } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime } from 'luxon';
-import { frame } from 'jsonld';
 import Select from 'react-select';
+import useReactor from '@cinematix/reactor';
 import ReducerContext from '../context/reducer';
 import Layout from '../components/layout';
 import Status from '../components/status';
 import Showtimes from '../components/showtimes';
 import getTodayDateTime from '../utils/today-datetime';
 import dateFormat from '../utils/date-format';
+import createQueryReactor from '../reactors/query';
 
 const initialState = {
   fields: {
@@ -327,15 +328,6 @@ function getGroupLabel(key) {
   }
 }
 
-async function resultFilter(result, type) {
-  const data = await frame(result, {
-    '@context': context,
-    '@type': type,
-  });
-
-  return data['@graph'] || [];
-}
-
 function getPropOptions(list, field) {
   const groups = new Map();
 
@@ -378,71 +370,6 @@ function getPropValue(list, field) {
     return undefined;
   });
 }
-
-const query = (new Subject()).pipe(
-  filter(({ theaters, zipCode }) => theaters.length || zipCode.length === 5),
-  distinctUntilChanged((z, y) => (
-    z.zipCode === y.zipCode
-    && z.limit === y.limit
-    && z.ticketing === y.ticketing
-    && z.startDate === y.startDate
-    && z.endDate === y.endDate
-    && z.theaters === y.theaters
-  )),
-  switchMap((q) => {
-    const url = new URL('https://cinematix.app/api/showtimes');
-
-    if (q.theaters.length) {
-      q.theaters.forEach(id => url.searchParams.append('theaters', id));
-    } else if (q.zipCode.length === 5) {
-      url.searchParams.set('zipCode', q.zipCode);
-
-      ['limit', 'ticketing'].forEach((field) => {
-        if (q[field] !== initialState.fields[field]) {
-          url.searchParams.set(field, q[field]);
-        }
-      });
-    } else {
-      return of({
-        type: 'result',
-      });
-    }
-
-    // Always set the start date to ensure the correct results are returned.
-    // They might not be correct because of timezones. :(
-    url.searchParams.set('startDate', q.startDate);
-    url.searchParams.set('endDate', q.endDate);
-
-    return merge(
-      of({
-        type: 'status',
-        status: 'fetching',
-      }),
-      ajax.getJSON(url.toString()).pipe(
-        flatMap(data => (
-          forkJoin([
-            resultFilter(data, 'ScreeningEvent'),
-            resultFilter(data, 'MovieTheater'),
-            resultFilter(data, 'Movie'),
-            resultFilter(data, ['x:Genre', 'x:Rating', 'x:Amenity', 'x:Format', 'x:Property']),
-          ]).pipe(
-            map(([showtimes, theaters, movies, props]) => ({
-              type: 'result',
-              showtimes,
-              theaters,
-              movies,
-              props,
-            })),
-          )
-        )),
-        catchError(error => of({
-          type: 'error',
-          error,
-        })),
-      ),
-    );
-  }),
-);
 
 function createPropertySearch(type, id) {
   return (new Subject()).pipe(
@@ -635,12 +562,10 @@ function Index() {
   };
 
   useEffect(() => {
-    const querySub = query.subscribe(action => dispatch(action));
     const theaterSub = theaterSearch.subscribe(action => dispatch(action));
     const movieSub = movieSearch.subscribe(action => dispatch(action));
 
     return () => {
-      querySub.unsubscribe();
       theaterSub.unsubscribe();
       movieSub.unsubscribe();
     };
@@ -690,24 +615,27 @@ function Index() {
   );
 
   // Update the query.
-  useEffect(() => {
-    const {
-      zipCode,
-      limit,
-      ticketing,
-      theater,
-      theaters,
-    } = state.fields;
-
-    query.next({
-      zipCode,
-      limit,
-      ticketing,
-      startDate,
-      endDate,
-      theaters: theater === 'include' ? theaters : [],
-    });
-  }, [
+  useReactor(value$ => (
+    createQueryReactor(value$.pipe(
+      // Map the array, to an object.
+      flatMap(([
+        zipCode,
+        limit,
+        ticketing,
+        theater,
+        theaters,
+        start,
+        end,
+      ]) => (of({
+        zipCode,
+        limit,
+        ticketing,
+        startDate: start,
+        endDate: end,
+        theaters: theater === 'include' ? theaters : [],
+      })))
+    ), initialState)
+  ), dispatch, [
     state.fields.zipCode,
     state.fields.limit,
     state.fields.ticketing,
