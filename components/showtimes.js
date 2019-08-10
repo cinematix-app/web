@@ -2,7 +2,7 @@ import {
   Fragment,
   useContext,
   useCallback,
-  useMemo
+  useMemo,
 } from 'react';
 import { DateTime, Duration } from 'luxon';
 import reducer from '../context/reducer';
