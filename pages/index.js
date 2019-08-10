@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useMemo,
+  useCallback,
   Fragment,
 } from 'react';
 import Router from 'next/router';
@@ -26,7 +27,12 @@ import { ajax } from 'rxjs/ajax';
 import { DateTime, Duration } from 'luxon';
 import { frame } from 'jsonld';
 import Select from 'react-select';
+import ReducerContext from '../context/reducer';
 import Layout from '../components/layout';
+import Status from '../components/status';
+import Showtimes from '../components/showtimes';
+import getTodayDateTime from '../utils/today-datetime';
+import dateFormat from '../utils/date-format';
 
 const initialState = {
   fields: {
@@ -99,8 +105,6 @@ function textToCollection(text, data) {
   });
 }
 
-const dateFormat = 'yyyy-MM-dd';
-
 /**
  * Take an existing list and a new list and merge them updating
  * the existing items and adding new items, but not discarding anything.
@@ -135,16 +139,6 @@ function getDateTime(date) {
     default:
       return DateTime.fromFormat(date, dateFormat);
   }
-}
-
-/**
- * Get today
- *
- * @param {string} today
- * @return {DateTime}
- */
-function getTodayDateTime(today) {
-  return today ? DateTime.fromFormat(today, dateFormat).startOf('day') : null;
 }
 
 /**
@@ -590,46 +584,6 @@ function createPropertySearch(type, id) {
 const theaterSearch = createPropertySearch('theaters', 'P6644');
 const movieSearch = createPropertySearch('movies', 'P5693');
 
-function displayFilter(include, exclude, data) {
-  if (include.length !== 0) {
-    if (!data) {
-      return false;
-    }
-
-    const match = include.find((id) => {
-      if (Array.isArray(data)) {
-        return data.find(a => a['@id'] === id);
-      }
-
-      return data['@id'];
-    });
-
-    if (!match) {
-      return false;
-    }
-  }
-
-  if (exclude.length !== 0) {
-    if (!data) {
-      return true;
-    }
-
-    const match = exclude.find((id) => {
-      if (Array.isArray(data)) {
-        return data.find(a => a['@id'] === id);
-      }
-
-      return data['@id'] === id;
-    });
-
-    if (match) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 const ticketingOptions = [
   { value: 'both', label: 'Both' },
   { value: 'online', label: 'Online' },
@@ -646,27 +600,25 @@ const locaitonFields = [
   'ticketing',
 ];
 
+
 function Index() {
-  const formRef = useRef(null);
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const locationDisabled = state.fields.theater === 'include' && state.fields.theaters.length > 0;
 
-  const handleChange = ({ target }) => {
+  const handleChange = useCallback(({ target }) => {
     dispatch({
       type: 'change',
       name: target.name,
       value: target.type === 'checkbox' ? target.checked : target.value,
     });
-  };
+  }, []);
 
-  const handleListChange = list => (
-    data => dispatch({
-      type: 'change',
-      name: list,
-      value: data ? data.map(({ value }) => value) : [],
-    })
-  );
+  const handleListChange = list => data => dispatch({
+    type: 'change',
+    name: list,
+    value: data ? data.map(({ value }) => value) : [],
+  });
 
   const createInputHandler = (type) => {
     let search;
@@ -681,7 +633,7 @@ function Index() {
         throw new Error('Unknown Type');
     }
 
-    return input => search.next(input);
+    return search.next;
   };
 
   useEffect(() => {
@@ -834,14 +786,29 @@ function Index() {
     [state.theaters, state.fields.theaters, state.search.theaters.result],
   );
 
-  const propsOptions = useMemo(
-    () => getPropOptions(state.props, state.fields.props),
-    [state.props, state.fields.props],
-  );
-  const propsxOptions = useMemo(
-    () => getPropOptions(state.props, state.fields.propsx),
-    [state.props, state.fields.propsx],
-  );
+  const {
+    options: propsOptions,
+    value: propsValue,
+  } = useMemo(() => {
+    const options = getPropOptions(state.props, state.fields.props);
+
+    return {
+      options,
+      value: getPropValue(options, state.fields.props),
+    };
+  }, [state.props, state.fields.props]);
+
+  const {
+    options: propsxOptions,
+    value: propsxValue,
+  } = useMemo(() => {
+    const options = getPropOptions(state.props, state.fields.propsx);
+
+    return {
+      options,
+      value: getPropValue(options, state.fields.propsx),
+    };
+  }, [state.propsx, state.fields.propsx]);
 
   const startTime = useMemo(() => (
     state.fields.startTime ? DateTime.fromISO(state.fields.startTime) : null
@@ -849,268 +816,6 @@ function Index() {
   const endTime = useMemo(() => (
     state.fields.endTime ? DateTime.fromISO(state.fields.endTime) : null
   ), [state.fields.endTime]);
-
-  const showtimes = useMemo(() => {
-    const today = getTodayDateTime(state.today);
-    if (state.status === 'error') {
-      return (
-        <div className="alert alert-danger" role="alert">
-          An error occured with the request to <a href={state.error.request.url} className="alert-link">{state.error.request.url}</a>
-        </div>
-      );
-    }
-
-    let options = [];
-    if (state.fields.props.length > 1) {
-      options = [
-        ...options,
-        ...getPropValue(propsOptions, state.fields.props),
-      ];
-    }
-
-
-    let movieWidth = 4;
-    let theaterWidth = 4;
-    let showtimeWidth = 4;
-    const optionsLimit = options.length > 6 ? 6 : options.length;
-    switch (optionsLimit) {
-      case 2:
-        showtimeWidth -= 1;
-        movieWidth -= 1;
-        break;
-      case 3:
-        showtimeWidth -= 1;
-        movieWidth -= 1;
-        theaterWidth -= 1;
-        break;
-      case 4:
-        showtimeWidth -= 2;
-        movieWidth -= 1;
-        theaterWidth -= 1;
-        break;
-      case 5:
-        showtimeWidth -= 2;
-        movieWidth -= 2;
-        theaterWidth -= 1;
-        break;
-      case 6:
-        showtimeWidth -= 2;
-        movieWidth -= 2;
-        theaterWidth -= 2;
-        break;
-      default:
-        break;
-    }
-
-    const rows = [...(state.showtimes || [])].filter(({
-      location,
-      offers,
-      workPresented,
-      props,
-      startDate: showtimeStartDate,
-    }) => {
-      if (offers.availability === 'https://schema.org/Discontinued') {
-        return false;
-      }
-
-      if (state.fields.movies.length !== 0) {
-        const match = state.fields.movies.includes(workPresented['@id'].split(':').pop());
-
-        if (state.fields.movie === 'exclude' && match) {
-          return false;
-        }
-        if (state.fields.movie === 'include' && !match) {
-          return false;
-        }
-      }
-
-      if (state.fields.theaters.length !== 0) {
-        const match = state.fields.theaters.includes(location['@id'].split(':').pop());
-
-        if (state.fields.theater === 'exclude' && match) {
-          return false;
-        }
-        if (state.fields.theater === 'include' && !match) {
-          return false;
-        }
-      }
-
-      if (!displayFilter(
-        state.fields.props,
-        state.fields.propsx,
-        props,
-      )) {
-        return false;
-      }
-
-      if (startTime || endTime) {
-        const showStart = DateTime.fromISO(showtimeStartDate);
-
-        if (startTime) {
-          const showSet = {
-            year: showStart.get('year'),
-            month: showStart.get('month'),
-            day: showStart.get('day'),
-          };
-
-          // Ensure that the show starts after the start time, even if it's on a different day.
-          if (showStart < startTime.set(showSet)) {
-            return false;
-          }
-        }
-
-        if (endTime) {
-          // Use the duration of the movie to determine the end, assume 20 minutes of previews.
-          const showEnd = showStart.plus(
-            Duration.fromISO(workPresented.duration),
-          ).plus({ minutes: 20 });
-          const showSet = {
-            year: showStart.get('year'),
-            month: showStart.get('month'),
-            day: showStart.get('day'),
-          };
-          const realEnd = startTime && endTime < startTime
-            ? endTime.set(showSet).plus({ days: 1 })
-            : endTime.set(showSet);
-
-          if (showEnd > realEnd) {
-            return false;
-          }
-        }
-      }
-
-      return true;
-    }).sort((a, b) => (
-      // @TODO make the sort configurable.
-      DateTime.fromISO(a.startDate) - DateTime.fromISO(b.startDate)
-    )).map((showtime) => {
-      let movieDisplay;
-      if (showtime.workPresented) {
-        movieDisplay = (
-          <a href={showtime.workPresented.url}>
-            {showtime.workPresented.name}
-          </a>
-        );
-      }
-
-      let theaterDisplay;
-      if (showtime.location) {
-        theaterDisplay = (
-          <a href={showtime.location.url}>
-            {showtime.location.name}
-          </a>
-        );
-      }
-
-      let optionsDisplay;
-      if (optionsLimit > 1) {
-        optionsDisplay = options.slice(0, optionsLimit).map((option) => {
-          let checkMark;
-
-          if (showtime.props.find(obj => obj['@id'] === option.value)) {
-            checkMark = (
-              <div className="mb-2">
-                <img src="static/baseline-check_circle-24px.svg" alt={option.label} /><span className="d-md-none"> {option.label}</span>
-              </div>
-            );
-          }
-
-          return (
-            <div key={option.value} className="col-md-1 text-left text-md-center">
-              {checkMark}
-            </div>
-          );
-        });
-      }
-
-      let className = [
-        'btn',
-        'btn-block',
-      ];
-      if (showtime.offers.availability === 'https://schema.org/InStock') {
-        className = [
-          ...className,
-          'btn-outline-primary',
-        ];
-      } else {
-        className = [
-          ...className,
-          'btn-outline-secondary',
-          'disabled',
-        ];
-      }
-
-      const showStart = DateTime.fromISO(showtime.startDate);
-      const longFormat = {
-        month: 'long',
-        weekday: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-      };
-      const timeFormat = showStart > today.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
-
-      return (
-        <div key={showtime['@id']} className="row align-items-center mb-2 mb-md-0">
-          <div className={`col-md-${movieWidth} mb-2`}>
-            {movieDisplay}
-          </div>
-          <div className={`col-md-${theaterWidth} mb-2`}>
-            {theaterDisplay}
-          </div>
-          {optionsDisplay}
-          <div className={`col-md-${showtimeWidth} mb-2`}>
-            <a className={className.join(' ')} href={showtime.offers.url}>
-              <time dateTime={showStart.toISO()}>
-                {showStart.toLocaleString(timeFormat)}
-              </time>
-            </a>
-          </div>
-        </div>
-      );
-    });
-
-    if (rows.length === 0) {
-      return null;
-    }
-
-    let optionsDisplay;
-    if (optionsLimit > 1) {
-      optionsDisplay = options.slice(0, optionsLimit).map(option => (
-        <div key={option.value} className="col-md-1 mb-2 text-center text-break">
-          {option.label}
-        </div>
-      ));
-    }
-
-    return (
-      <Fragment>
-        <div className="row border-bottom d-none mb-2 d-md-flex align-items-end">
-          <h5 className={`col-md-${movieWidth}`}>
-            Movie
-          </h5>
-          <h5 className={`col-md-${theaterWidth}`}>
-            Theater
-          </h5>
-          {optionsDisplay}
-        </div>
-        {rows}
-      </Fragment>
-    );
-  }, [
-    state.status,
-    state.error,
-    state.today,
-    state.showtimes,
-    state.fields.theater,
-    state.fields.theaters,
-    state.fields.movie,
-    state.fields.movies,
-    state.fields.props,
-    state.fields.propsx,
-    state.fields.startTime,
-    state.fields.endTime,
-  ]);
 
   const customStartDate = useMemo(
     () => !quickDates.includes(state.fields.startDate),
@@ -1159,9 +864,22 @@ function Index() {
     [state.today],
   );
 
+  const ticketingChange = useCallback(({ value }) => dispatch({
+    type: 'change',
+    name: 'ticketing',
+    value,
+  }), []);
+
+  const ticketingValue = useMemo(() => (
+    ticketingOptions.find(({ value }) => value === state.fields.ticketing)
+  ), [state.fields.ticketing]);
+
+  const submitCallback = useCallback(e => e.preventDefault(), []);
+
   return (
     <Layout>
-      <form ref={formRef} onSubmit={e => e.preventDefault()}>
+      <ReducerContext.Provider value={[state, dispatch]}>
+        <form onSubmit={submitCallback}>
         <div className="row form-group">
           <label className="col-2 col-lg-1 col-form-label text-nowrap" htmlFor="zipCode">Zip Code</label>
           <div className="col-md col-12">
@@ -1197,12 +915,8 @@ function Index() {
               options={ticketingOptions}
               className="select-container"
               classNamePrefix="select"
-              value={ticketingOptions.find(({ value }) => value === state.fields.ticketing)}
-              onChange={({ value }) => dispatch({
-                type: 'change',
-                name: 'ticketing',
-                value,
-              })}
+                value={ticketingValue}
+                onChange={ticketingChange}
               isDisabled={locationDisabled}
             />
           </div>
@@ -1300,8 +1014,8 @@ function Index() {
               value={state.fields.theaters.map(
                 id => theaterOptions.find(({ value }) => id === value),
               )}
-              onChange={handleListChange('theaters')}
-              onInputChange={createInputHandler('theaters')}
+                onChange={handleListChange('theaters')}
+                onInputChange={createInputHandler('theaters')}
               isLoading={state.search.theaters.fetching}
               isMulti
             />
@@ -1323,8 +1037,8 @@ function Index() {
               className="select-container rounded-bottom rounded-top-0 rounded-md-left-0 rounded-md-right"
               classNamePrefix="select"
               value={state.fields.movies.map(id => movieOptions.find(({ value }) => id === value))}
-              onChange={handleListChange('movies')}
-              onInputChange={createInputHandler('movies')}
+                onChange={handleListChange('movies')}
+                onInputChange={createInputHandler('movies')}
               isLoading={state.search.movies.fetching}
               isMulti
             />
@@ -1342,8 +1056,8 @@ function Index() {
               options={propsOptions}
               className={['select-container', 'rounded-0', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
-              value={getPropValue(propsOptions, state.fields.props)}
-              onChange={handleListChange('props')}
+                value={propsValue}
+                onChange={handleListChange('props')}
               isMulti
             />
           </div>
@@ -1357,14 +1071,17 @@ function Index() {
               options={propsxOptions}
               className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
               classNamePrefix="select"
-              value={getPropValue(propsxOptions, state.fields.propsx)}
-              onChange={handleListChange('propsx')}
+                value={propsxValue}
+                onChange={handleListChange('propsx')}
               isMulti
             />
           </div>
         </div>
       </form>
-      {showtimes}
+        <Status status={state.status} error={state.error}>
+          <Showtimes options={propsValue} startTime={startTime} endTime={endTime} />
+        </Status>
+      </ReducerContext.Provider>
     </Layout>
   );
 }
