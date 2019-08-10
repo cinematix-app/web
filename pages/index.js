@@ -20,7 +20,7 @@ import {
   catchError,
   debounceTime,
   map,
-  filter,
+  filter,z
 } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import { DateTime, Duration } from 'luxon';
@@ -388,6 +388,7 @@ function getPropValue(list, field) {
 }
 
 const query = (new Subject()).pipe(
+  filter(({ theaters, zipCode }) => theaters.length || zipCode.length === 5),
   distinctUntilChanged((z, y) => (
     z.zipCode === y.zipCode
     && z.limit === y.limit
@@ -399,10 +400,10 @@ const query = (new Subject()).pipe(
   switchMap((q) => {
     const url = new URL('https://cinematix.app/api/showtimes');
 
-    if (q.theaters.length > 0) {
+    if (q.theaters.length) {
       q.theaters.forEach(id => url.searchParams.append('theaters', id));
-    } else if (q.zipCode.length > 2) {
-      url.searchParams.set('zipCode', q.zipCode.padStart(5, '0'));
+    } else if (q.zipCode.length === 5) {
+      url.searchParams.set('zipCode', q.zipCode);
 
       ['limit', 'ticketing'].forEach((field) => {
         if (q[field] !== initialState.fields[field]) {
@@ -1166,12 +1167,10 @@ function Index() {
           <div className="col-md col-12">
             <input
               className="form-control"
-              type="number"
+              type="text"
               id="zipCode"
               name="zipCode"
-              min="501"
-              max="99999"
-              required
+              pattern="[0-9]{5}"
               value={state.fields.zipCode}
               onChange={handleChange}
               disabled={locationDisabled}
