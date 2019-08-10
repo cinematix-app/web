@@ -734,7 +734,7 @@ function Index() {
       options,
       value: getPropValue(options, state.fields.propsx),
     };
-  }, [state.propsx, state.fields.propsx]);
+  }, [state.props, state.fields.propsx]);
 
   const startTime = useMemo(() => (
     state.fields.startTime ? DateTime.fromISO(state.fields.startTime) : null
