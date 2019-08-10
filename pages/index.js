@@ -5,23 +5,8 @@ import {
   useCallback,
 } from 'react';
 import Router from 'next/router';
-import {
-  Subject,
-  of,
-  merge,
-  forkJoin,
-  timer,
-} from 'rxjs';
-import {
-  switchMap,
-  flatMap,
-  distinctUntilChanged,
-  catchError,
-  debounceTime,
-  map,
-  filter,
-} from 'rxjs/operators';
-import { ajax } from 'rxjs/ajax';
+import { of, timer } from 'rxjs';
+import { flatMap } from 'rxjs/operators';
 import { DateTime } from 'luxon';
 import Select from 'react-select';
 import useReactor from '@cinematix/reactor';
@@ -32,6 +17,8 @@ import Showtimes from '../components/showtimes';
 import getTodayDateTime from '../utils/today-datetime';
 import dateFormat from '../utils/date-format';
 import createQueryReactor from '../reactors/query';
+import createPropertySearchReactor from '../reactors/property-search';
+import context from '../utils/context';
 
 const initialState = {
   fields: {
@@ -69,18 +56,7 @@ const initialState = {
   error: null,
 };
 
-const context = {
-  '@vocab': 'https://schema.org/',
-  x: 'https://cinematix.app/',
-  xa: 'https://cinematix.app/amenity/',
-  xf: 'https://cinematix.app/format/',
-  xg: 'https://cinematix.app/genre/',
-  xm: 'https://cinematix.app/movie/',
-  xp: 'https://cinematix.app/property/',
-  xr: 'https://cinematix.app/rating/',
-  xs: 'https://cinematix.app/showtime/',
-  xt: 'https://cinematix.app/theater/',
-};
+const queryReactor = createQueryReactor(initialState);
 
 function toArray(value) {
   if (typeof value === 'undefined') {
@@ -371,143 +347,8 @@ function getPropValue(list, field) {
   });
 }
 
-function createPropertySearch(type, id) {
-  return (new Subject()).pipe(
-    filter(v => !!v),
-    distinctUntilChanged((z, y) => z === y),
-    debounceTime(250),
-    switchMap((value) => {
-      const url = new URL('https://www.wikidata.org/w/api.php');
-      url.searchParams.set('action', 'query');
-      url.searchParams.set('format', 'json');
-      url.searchParams.set('list', 'search');
-      url.searchParams.set('formatversion', 2);
-      url.searchParams.set('srinfo', '');
-      url.searchParams.set('srprop', '');
-      url.searchParams.set('srenablerewrites', 1);
-      url.searchParams.set('origin', '*');
-      url.searchParams.set('srsearch', `${id} ${value}`);
-
-      return merge(
-        of({
-          type: 'searchFetch',
-          field: type,
-        }),
-        ajax.getJSON(url.toString()).pipe(
-          flatMap((data) => {
-            if (!data.query) {
-              return of({
-                type: 'searchResult',
-                field: type,
-              });
-            }
-
-            if (!data.query.search || data.query.search.length === 0) {
-              return of({
-                type: 'searchResult',
-                field: type,
-              });
-            }
-
-            // Labels.
-            const labelUrl = new URL('https://www.wikidata.org/w/api.php');
-            labelUrl.searchParams.set('action', 'wbgetentities');
-            labelUrl.searchParams.set('format', 'json');
-            labelUrl.searchParams.set('origin', '*');
-            labelUrl.searchParams.set('formatversion', 2);
-            labelUrl.searchParams.set('ids', data.query.search.map(({ title }) => title).join('|'));
-            labelUrl.searchParams.set('languages', 'en');
-
-            const entityLabels = ajax.getJSON(labelUrl.toString());
-
-            const entityClaims = forkJoin(data.query.search.map(({ title }) => {
-              const claimUrl = new URL('https://www.wikidata.org/w/api.php');
-              claimUrl.searchParams.set('action', 'wbgetclaims');
-              claimUrl.searchParams.set('format', 'json');
-              claimUrl.searchParams.set('origin', '*');
-              claimUrl.searchParams.set('formatversion', 2);
-              claimUrl.searchParams.set('entity', title);
-              claimUrl.searchParams.set('property', id);
-              claimUrl.searchParams.set('props', '');
-
-              return forkJoin([of(title), ajax.getJSON(claimUrl.toString())]);
-            }));
-
-            return forkJoin([entityLabels, entityClaims]).pipe(
-              map(([labels, claimCollection]) => {
-                const result = claimCollection.reduce((acc, [entityId, claimSet]) => {
-                  if (
-                    !claimSet
-                    || !claimSet.claims
-                    || !claimSet.claims[id]
-                  ) {
-                    return acc;
-                  }
-
-                  // Remove deprecated and sort by prefered.
-                  const claims = claimSet.claims[id].filter(c => c.type !== 'deprecated').sort((a, b) => {
-                    if (a.rank === 'preferred') {
-                      return 1;
-                    }
-
-                    if (b.rank === 'preferred') {
-                      return -1;
-                    }
-
-                    return 0;
-                  });
-
-                  if (claims.length === 0) {
-                    return acc;
-                  }
-
-                  const claimValue = claims.pop().mainsnak.datavalue.value.toUpperCase();
-
-                  let label;
-                  if (
-                    labels
-                    && labels.entities
-                    && labels.entities[entityId]
-                    && labels.entities[entityId].labels
-                    && labels.entities[entityId].labels.en
-                    && labels.entities[entityId].labels.en.value
-                  ) {
-                    label = labels.entities[entityId].labels.en.value;
-                  } else {
-                    label = claimValue;
-                  }
-
-                  return [
-                    ...acc,
-                    {
-                      label,
-                      value: claimValue,
-                    },
-                  ];
-                }, []);
-
-                return {
-                  type: 'searchResult',
-                  field: type,
-                  result,
-                };
-              }),
-            );
-          }),
-          catchError(() => (
-            of({
-              type: 'searchResult',
-              field: type,
-            })
-          )),
-        ),
-      );
-    }),
-  );
-}
-
-const theaterSearch = createPropertySearch('theaters', 'P6644');
-const movieSearch = createPropertySearch('movies', 'P5693');
+const theaterSearchReactor = createPropertySearchReactor('theaters', 'P6644');
+const movieSearchReactor = createPropertySearchReactor('movies', 'P5693');
 
 const ticketingOptions = [
   { value: 'both', label: 'Both' },
@@ -545,31 +386,8 @@ function Index() {
     value: data ? data.map(({ value }) => value) : [],
   });
 
-  const createInputHandler = (type) => {
-    let search;
-    switch (type) {
-      case 'theaters':
-        search = theaterSearch;
-        break;
-      case 'movies':
-        search = movieSearch;
-        break;
-      default:
-        throw new Error('Unknown Type');
-    }
-
-    return search.next;
-  };
-
-  useEffect(() => {
-    const theaterSub = theaterSearch.subscribe(action => dispatch(action));
-    const movieSub = movieSearch.subscribe(action => dispatch(action));
-
-    return () => {
-      theaterSub.unsubscribe();
-      movieSub.unsubscribe();
-    };
-  }, []);
+  const theaterSearch = useReactor(theaterSearchReactor, dispatch);
+  const movieSearch = useReactor(movieSearchReactor, dispatch);
 
   // Update the query
   // @TODO Pass this in with server rendering!
@@ -616,8 +434,8 @@ function Index() {
 
   // Update the query.
   useReactor(value$ => (
-    createQueryReactor(value$.pipe(
-      // Map the array, to an object.
+    queryReactor(value$.pipe(
+      // Map the array to an object.
       flatMap(([
         zipCode,
         limit,
@@ -634,7 +452,7 @@ function Index() {
         endDate: end,
         theaters: theater === 'include' ? theaters : [],
       }))),
-    ), initialState)
+    ))
   ), dispatch, [
     state.fields.zipCode,
     state.fields.limit,
@@ -762,13 +580,13 @@ function Index() {
   }, [startDate]);
 
   const {
-    endDateTodayDisabled,
-    endDateTomorrowDisabled,
+    today: endDateTodayDisabled,
+    tomorrow: endDateTomorrowDisabled,
   } = useMemo(() => {
     if (!startDate || !state.today) {
       return {
-        endDateTodayDisabled: false,
-        endDateTomorrowDisabled: false,
+        today: false,
+        tomorrow: false,
       };
     }
 
@@ -776,8 +594,8 @@ function Index() {
     const today = getTodayDateTime(state.today);
 
     return {
-      endDateTodayDisabled: start > today,
-      endDateTomorrowDisabled: start > today.plus({ days: 1 }),
+      today: start > today,
+      tomorrow: start > today.plus({ days: 1 }),
     };
   }, [state.today, startDate]);
 
@@ -941,7 +759,7 @@ function Index() {
                   id => theaterOptions.find(({ value }) => id === value),
                 )}
                 onChange={handleListChange('theaters')}
-                onInputChange={createInputHandler('theaters')}
+                onInputChange={useCallback(value => theaterSearch.next(value))}
                 isLoading={state.search.theaters.fetching}
                 isMulti
               />
@@ -966,7 +784,7 @@ function Index() {
                   state.fields.movies.map(id => movieOptions.find(({ value }) => id === value))
                 }
                 onChange={handleListChange('movies')}
-                onInputChange={createInputHandler('movies')}
+                onInputChange={useCallback(value => movieSearch.next(value))}
                 isLoading={state.search.movies.fetching}
                 isMulti
               />

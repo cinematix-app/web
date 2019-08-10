@@ -14,8 +14,8 @@ import {
 import { ajax } from 'rxjs/ajax';
 import resultFilter from '../utils/result-filter';
 
-function createQueryReactor(value$, initialState) {
-  return value$.pipe(
+function createQueryReactor(initialState) {
+  return value$ => value$.pipe(
     filter(({ theaters, zipCode }) => theaters.length || zipCode.length === 5),
     distinctUntilChanged((z, y) => (
       z.zipCode === y.zipCode
