@@ -9,13 +9,22 @@ import reducer from '../context/reducer';
 import displayFilter from '../utils/display-filter';
 import displayFilterExclusive from '../utils/display-filter-exclusive';
 import getTodayDateTime from '../utils/today-datetime';
+import getPropValue from '../utils/prop-value';
+import getPropOptions from '../utils/prop-options';
 
-function Showtimes({
-  options,
-  startTime,
-  endTime,
-}) {
+function Showtimes() {
   const [state] = useContext(reducer);
+
+  const options = useMemo(() => (
+    getPropValue(getPropOptions(state.props, state.fields.props), state.fields.props)
+  ), [state.props, state.fields.props]);
+
+  const startTime = useMemo(() => (
+    state.fields.startTime ? DateTime.fromISO(state.fields.startTime) : null
+  ), [state.fields.startTime]);
+  const endTime = useMemo(() => (
+    state.fields.endTime ? DateTime.fromISO(state.fields.endTime) : null
+  ), [state.fields.endTime]);
 
   const optionsFilter = useCallback(props => displayFilter(
     state.fields.props,
