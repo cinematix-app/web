@@ -44,56 +44,20 @@ function Showtimes() {
     location,
   ), [state.fields.theater, state.fields.theaters]);
 
-  const timeFormater = useCallback((showtimeStartDate) => {
-    const today = getTodayDateTime(state.today);
-    const showStart = DateTime.fromISO(showtimeStartDate);
-    const longFormat = {
-      month: 'long',
-      weekday: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-    };
-
-    const timeFormat = showStart > today.endOf('day') ? longFormat : DateTime.TIME_SIMPLE;
-
-    return showStart.toLocaleString(timeFormat);
-  }, [state.today]);
-
   const {
     movie: movieWidth,
     theater: theaterWidth,
     showtime: showtimeWidth,
     limit: optionsLimit,
   } = useMemo(() => {
-    let movie = 4;
+    let movie = 3;
     let theater = 4;
-    let showtime = 4;
-    const limit = options.length > 6 ? 6 : options.length;
+    const showtime = 5;
+    const limit = options.length > 2 ? 2 : options.length;
     switch (limit) {
       case 2:
-        showtime -= 1;
-        movie -= 1;
-        break;
-      case 3:
-        showtime -= 1;
         movie -= 1;
         theater -= 1;
-        break;
-      case 4:
-        showtime -= 2;
-        movie -= 1;
-        theater -= 1;
-        break;
-      case 5:
-        showtime -= 2;
-        movie -= 2;
-        theater -= 1;
-        break;
-      case 6:
-        showtime -= 2;
-        movie -= 2;
-        theater -= 2;
         break;
       default:
         break;
@@ -197,13 +161,13 @@ function Showtimes() {
         if (showtime.props.find(obj => obj['@id'] === option.value)) {
           checkMark = (
             <div className="mb-2">
-              <img src="static/baseline-check_circle-24px.svg" alt={option.label} /><span className="d-md-none"> {option.label}</span>
+              <img src="static/baseline-check_circle-24px.svg" alt={option.label} /><span className="d-lg-none"> {option.label}</span>
             </div>
           );
         }
 
         return (
-          <div key={option.value} className="col-md-1 text-left text-md-center">
+          <div key={option.value} className="col-lg-1 text-left text-lg-center">
             {checkMark}
           </div>
         );
@@ -227,21 +191,44 @@ function Showtimes() {
       ];
     }
 
+    const showStart = DateTime.fromISO(showtime.startDate);
+
+    const showEnd = showStart.plus(
+      Duration.fromISO(showtime.workPresented.duration),
+    ).plus({ minutes: 20 });
+
     return (
-      <div key={showtime['@id']} className="row align-items-center mb-2 mb-md-0">
-        <div className={`col-md-${movieWidth} mb-2`}>
+      <div key={showtime['@id']} className="row align-items-center mb-2 mb-lg-0">
+        <div className={`col-lg-${movieWidth} mb-2`}>
           {movieDisplay}
         </div>
-        <div className={`col-md-${theaterWidth} mb-2`}>
+        <div className={`col-lg-${theaterWidth} mb-2`}>
           {theaterDisplay}
         </div>
         {optionsDisplay}
-        <div className={`col-md-${showtimeWidth} mb-2`}>
-          <a className={className.join(' ')} href={showtime.offers.url}>
-            <time dateTime={showtime.startDate}>
-              {timeFormater(showtime.startDate)}
-            </time>
-          </a>
+        <div className={`col-lg-${showtimeWidth} mb-2`}>
+          <div className="row">
+            <div className="col-sm-3 col-4 mb-2">
+              <time dateTime={showtime.startDate}>
+                {showStart.toLocaleString(DateTime.DATE_SHORT)}
+              </time>
+            </div>
+            <div className="col-sm-3 col-4 mb-2">
+              <time dateTime={showtime.startDate}>
+                {showStart.toLocaleString(DateTime.TIME_SIMPLE)}
+              </time>
+            </div>
+            <div className="col-sm-3 col-4 mb-2">
+              <time dateTime={showEnd.toISO()}>
+                {showEnd.toLocaleString(DateTime.TIME_SIMPLE)}
+              </time>
+            </div>
+            <div className="col-sm-3 col-12">
+              <a className={className.join(' ')} href={showtime.offers.url}>
+                  →
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -251,7 +238,6 @@ function Showtimes() {
     optionsFilter,
     movieFilter,
     displayFilter,
-    timeFormater,
     startTime,
     endTime,
   ]);
@@ -263,7 +249,7 @@ function Showtimes() {
   let optionsDisplay;
   if (optionsLimit > 1) {
     optionsDisplay = options.slice(0, optionsLimit).map(option => (
-      <div key={option.value} className="col-md-1 mb-2 text-center text-break">
+      <div key={option.value} className="col-lg-1 mb-2 text-center text-break">
         {option.label}
       </div>
     ));
@@ -271,14 +257,27 @@ function Showtimes() {
 
   return (
     <Fragment>
-      <div className="row border-bottom d-none mb-2 d-md-flex align-items-end">
-        <h5 className={`col-md-${movieWidth}`}>
+      <div className="row border-bottom d-none mb-2 d-lg-flex align-items-end">
+        <h5 className={`col-lg-${movieWidth} mb-0`}>
           Movie
         </h5>
-        <h5 className={`col-md-${theaterWidth}`}>
+        <h5 className={`col-lg-${theaterWidth} mb-0`}>
           Theater
         </h5>
         {optionsDisplay}
+        <div className={`col-lg-${showtimeWidth} mb-2`}>
+          <div className="row align-items-end">
+            <h5 className="col-3 mb-0">
+              Date
+            </h5>
+            <h5 className="col-3 mb-0">
+              Start
+            </h5>
+            <h5 className="col-3 mb-0">
+              End <small><small><abbr title="assumes 20 minutes of previews">approx</abbr></small></small>
+            </h5>
+          </div>
+        </div>
       </div>
       {rows}
     </Fragment>
