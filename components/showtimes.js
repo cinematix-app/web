@@ -44,34 +44,7 @@ function Showtimes() {
     location,
   ), [state.fields.theater, state.fields.theaters]);
 
-  const {
-    movie: movieWidth,
-    theater: theaterWidth,
-    showtime: showtimeWidth,
-    limit: optionsLimit,
-  } = useMemo(() => {
-    let movie = 3;
-    let theater = 4;
-    const showtime = 5;
-    const limit = options.length > 2 ? 2 : options.length;
-    switch (limit) {
-      case 2:
-        movie -= 1;
-        theater -= 1;
-        break;
-      default:
-        break;
-    }
-
-    return {
-      movie,
-      theater,
-      showtime,
-      limit,
-    };
-  }, [options]);
-
-  const rows = useMemo(() => [...(state.showtimes || [])].filter(({
+  const showtimes = useMemo(() => [...(state.showtimes || [])].filter(({
     location,
     offers,
     workPresented,
@@ -110,7 +83,7 @@ function Showtimes() {
         }
       }
 
-      if (endTime) {
+      if (endTime && workPresented.duration) {
         // Use the duration of the movie to determine the end, assume 20 minutes of previews.
         const showEnd = showStart.plus(
           Duration.fromISO(workPresented.duration),
@@ -134,112 +107,205 @@ function Showtimes() {
   }).sort((a, b) => (
     // @TODO make the sort configurable.
     DateTime.fromISO(a.startDate) - DateTime.fromISO(b.startDate)
-  )).map((showtime) => {
-    let movieDisplay;
-    if (showtime.workPresented) {
-      movieDisplay = (
-        <a href={showtime.workPresented.url}>
-          {showtime.workPresented.name}
-        </a>
-      );
-    }
-
-    let theaterDisplay;
-    if (showtime.location) {
-      theaterDisplay = (
-        <a href={showtime.location.url}>
-          {showtime.location.name}
-        </a>
-      );
-    }
-
-    let optionsDisplay;
-    if (optionsLimit > 1) {
-      optionsDisplay = options.slice(0, optionsLimit).map((option) => {
-        let checkMark;
-
-        if (showtime.props.find(obj => obj['@id'] === option.value)) {
-          checkMark = (
-            <div className="mb-2">
-              <img src="static/baseline-check_circle-24px.svg" alt={option.label} /><span className="d-lg-none"> {option.label}</span>
-            </div>
-          );
-        }
-
-        return (
-          <div key={option.value} className="col-lg-1 text-left text-lg-center">
-            {checkMark}
-          </div>
-        );
-      });
-    }
-
-    let className = [
-      'btn',
-      'btn-block',
-    ];
-    if (showtime.offers.availability === 'https://schema.org/InStock') {
-      className = [
-        ...className,
-        'btn-outline-primary',
-      ];
-    } else {
-      className = [
-        ...className,
-        'btn-outline-secondary',
-        'disabled',
-      ];
-    }
-
-    const showStart = DateTime.fromISO(showtime.startDate);
-
-    const showEnd = showStart.plus(
-      Duration.fromISO(showtime.workPresented.duration),
-    ).plus({ minutes: 20 });
-
-    return (
-      <div key={showtime['@id']} className="row align-items-center mb-2 mb-lg-0">
-        <div className={`col-lg-${movieWidth} mb-2`}>
-          {movieDisplay}
-        </div>
-        <div className={`col-lg-${theaterWidth} mb-2`}>
-          {theaterDisplay}
-        </div>
-        {optionsDisplay}
-        <div className={`col-lg-${showtimeWidth} mb-2`}>
-          <div className="row">
-            <div className="col-sm-3 col-4 mb-2">
-              <time dateTime={showtime.startDate}>
-                {showStart.toLocaleString(DateTime.DATE_SHORT)}
-              </time>
-            </div>
-            <div className="col-sm-3 col-4 mb-2">
-              <time dateTime={showtime.startDate}>
-                {showStart.toLocaleString(DateTime.TIME_SIMPLE)}
-              </time>
-            </div>
-            <div className="col-sm-3 col-4 mb-2">
-              <time dateTime={showEnd.toISO()}>
-                {showEnd.toLocaleString(DateTime.TIME_SIMPLE)}
-              </time>
-            </div>
-            <div className="col-sm-3 col-12">
-              <a className={className.join(' ')} href={showtime.offers.url}>
-                  →
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }), [
+  )), [
     state.showtimes,
-    options,
     optionsFilter,
     movieFilter,
     displayFilter,
     startTime,
     endTime,
+  ]);
+
+  const hasFutureShowtimes = useMemo(() => {
+    const today = getTodayDateTime(state.today);
+    if (!today) {
+      return false;
+    }
+
+    // if there are any showtimes that are not today, then they are in the future.
+    return !!showtimes.find(({ startDate }) => !DateTime.fromISO(startDate).startOf('day').equals(today));
+  }, [
+    showtimes,
+    state.today,
+  ]);
+
+  const {
+    movie: movieWidth,
+    theater: theaterWidth,
+    showtime: showtimeWidth,
+    showtimeDetail: showtimeDeatailWidth,
+    limit: optionsLimit,
+  } = useMemo(() => {
+    let movie = hasFutureShowtimes ? 3 : 4;
+    let theater = 4;
+    const showtime = hasFutureShowtimes ? 5 : 4;
+    const allowed = hasFutureShowtimes ? 3 : 4;
+    const limit = options.length > allowed ? allowed : options.length;
+    switch (limit) {
+      case 2:
+        movie -= 1;
+        theater -= 1;
+        break;
+      case 3:
+        movie -= 1;
+        theater -= 2;
+        break;
+      case 4:
+        movie -= 2;
+        theater -= 2;
+        break;
+      default:
+        break;
+    }
+
+    return {
+      movie,
+      theater,
+      showtime,
+      showtimeDetail: hasFutureShowtimes ? 3 : 4,
+      limit,
+    };
+  }, [
+    options,
+    hasFutureShowtimes,
+  ]);
+
+  const rows = useMemo(() => {
+    const today = getTodayDateTime(state.today);
+
+    return showtimes.map((showtime) => {
+      let movieDisplay;
+      if (showtime.workPresented) {
+        movieDisplay = (
+          <a href={showtime.workPresented.url}>
+            {showtime.workPresented.name}
+          </a>
+        );
+      }
+
+      let theaterDisplay;
+      if (showtime.location) {
+        theaterDisplay = (
+          <a href={showtime.location.url}>
+            {showtime.location.name}
+          </a>
+        );
+      }
+
+      let optionsDisplay;
+      if (optionsLimit > 1) {
+        optionsDisplay = options.slice(0, optionsLimit).map((option) => {
+          let checkMark;
+
+          if (showtime.props.find(obj => obj['@id'] === option.value)) {
+            checkMark = (
+              <div className="mb-2">
+                <img src="static/baseline-check_circle-24px.svg" alt={option.label} /><span className="d-lg-none"> {option.label}</span>
+              </div>
+            );
+          }
+
+          return (
+            <div key={option.value} className="col-lg-1 text-left text-lg-center">
+              {checkMark}
+            </div>
+          );
+        });
+      }
+
+      let className = [
+        'btn',
+        'btn-block',
+      ];
+      if (showtime.offers.availability === 'https://schema.org/InStock') {
+        className = [
+          ...className,
+          'btn-outline-primary',
+        ];
+      } else {
+        className = [
+          ...className,
+          'btn-outline-secondary',
+          'disabled',
+        ];
+      }
+
+      const showStart = DateTime.fromISO(showtime.startDate);
+
+      const showEnd = showtime.workPresented.duration
+        ? showStart.plus(
+          Duration.fromISO(showtime.workPresented.duration),
+        ).plus({ minutes: 20 })
+        : null;
+
+      let dateDisplay;
+      if (hasFutureShowtimes) {
+        dateDisplay = (
+          <div className={`col-sm-${showtimeDeatailWidth} col-4 mb-2`}>
+            <time dateTime={showtime.startDate}>
+              {!today || !showStart.startOf('day').equals(today) ? showStart.toLocaleString(DateTime.DATE_SHORT) : null}
+            </time>
+          </div>
+        );
+      }
+
+      return (
+        <div key={showtime['@id']} className="row align-items-center mb-2 mb-lg-0">
+          <div className={`col-lg-${movieWidth} mb-2`}>
+            {movieDisplay}
+          </div>
+          <div className={`col-lg-${theaterWidth} mb-2`}>
+            {theaterDisplay}
+          </div>
+          {optionsDisplay}
+          <div className={`col-lg-${showtimeWidth} mb-2`}>
+            <div className="row">
+              {dateDisplay}
+              <div className={`col-sm-${showtimeDeatailWidth} col-4 mb-2`}>
+                <time dateTime={showtime.startDate}>
+                  {showStart.toLocaleString(DateTime.TIME_SIMPLE)}
+                </time>
+              </div>
+              <div className={`col-sm-${showtimeDeatailWidth} col-4 mb-2`}>
+                <time dateTime={showEnd ? showEnd.toISO() : undefined}>
+                  {showEnd ? showEnd.toLocaleString(DateTime.TIME_SIMPLE) : undefined}
+                </time>
+              </div>
+              <div className={`col-sm-${showtimeDeatailWidth} col-12`}>
+                <a className={className.join(' ')} href={showtime.offers.url}>
+                  →
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    });
+  }, [
+    state.today,
+    showtimes,
+    options,
+    optionsLimit,
+    movieWidth,
+    theaterWidth,
+    showtimeWidth,
+    showtimeDeatailWidth,
+    hasFutureShowtimes,
+  ]);
+
+  const dateHeader = useMemo(() => {
+    if (!hasFutureShowtimes) {
+      return null;
+    }
+
+    return (
+      <h5 className={`col-${showtimeDeatailWidth} mb-0`}>
+        Date
+      </h5>
+    );
+  }, [
+    hasFutureShowtimes,
+    showtimeDeatailWidth,
   ]);
 
   if (rows.length === 0) {
@@ -267,13 +333,11 @@ function Showtimes() {
         {optionsDisplay}
         <div className={`col-lg-${showtimeWidth} mb-2`}>
           <div className="row align-items-end">
-            <h5 className="col-3 mb-0">
-              Date
-            </h5>
-            <h5 className="col-3 mb-0">
+            {dateHeader}
+            <h5 className={`col-${showtimeDeatailWidth} mb-0`}>
               Start
             </h5>
-            <h5 className="col-3 mb-0">
+            <h5 className={`col-${showtimeDeatailWidth} mb-0`}>
               End <small><small><abbr title="assumes 20 minutes of previews">approx</abbr></small></small>
             </h5>
           </div>
