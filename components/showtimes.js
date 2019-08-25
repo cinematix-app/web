@@ -259,7 +259,7 @@ function Showtimes() {
           </div>
           {optionsDisplay}
           <div className={`col-lg-${showtimeWidth} mb-2`}>
-            <div className="row">
+            <div className="row align-items-center">
               {dateDisplay}
               <div className={`col-sm-${showtimeDeatailWidth} col-4 mb-2`}>
                 <time dateTime={showtime.startDate}>
@@ -331,7 +331,7 @@ function Showtimes() {
           Theater
         </h5>
         {optionsDisplay}
-        <div className={`col-lg-${showtimeWidth} mb-2`}>
+        <div className={`col-lg-${showtimeWidth}`}>
           <div className="row align-items-end">
             {dateHeader}
             <h5 className={`col-${showtimeDeatailWidth} mb-0`}>
