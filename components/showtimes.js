@@ -83,22 +83,23 @@ function Showtimes() {
         }
       }
 
-      if (endTime && workPresented.duration) {
-        // Use the duration of the movie to determine the end, assume 20 minutes of previews.
-        const showEnd = showStart.plus(
-          Duration.fromISO(workPresented.duration),
-        ).plus({ minutes: 20 });
-        const showSet = {
-          year: showStart.get('year'),
-          month: showStart.get('month'),
-          day: showStart.get('day'),
-        };
-        const realEnd = startTime && endTime < startTime
-          ? endTime.set(showSet).plus({ days: 1 })
-          : endTime.set(showSet);
+      if (endTime) {
+        const duration = Duration.fromISO(workPresented.duration);
+        if (duration.get('minutes') > 0) {
+          // Use the duration of the movie to determine the end, assume 20 minutes of previews.
+          const showEnd = showStart.plus(duration).plus({ minutes: 20 })
+          const showSet = {
+            year: showStart.get('year'),
+            month: showStart.get('month'),
+            day: showStart.get('day'),
+          };
+          const realEnd = startTime && endTime < startTime
+            ? endTime.set(showSet).plus({ days: 1 })
+            : endTime.set(showSet);
 
-        if (showEnd > realEnd) {
-          return false;
+          if (showEnd > realEnd) {
+            return false;
+          }
         }
       }
     }
@@ -232,10 +233,9 @@ function Showtimes() {
 
       const showStart = DateTime.fromISO(showtime.startDate);
 
-      const showEnd = showtime.workPresented.duration
-        ? showStart.plus(
-          Duration.fromISO(showtime.workPresented.duration),
-        ).plus({ minutes: 20 })
+      const duration = Duration.fromISO(showtime.workPresented.duration);
+      const showEnd = duration.get('minutes') > 0
+        ? showStart.plus(duration).plus({ minutes: 20 })
         : null;
 
       let dateDisplay;
