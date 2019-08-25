@@ -12,6 +12,8 @@ import getTodayDateTime from '../utils/today-datetime';
 import getPropValue from '../utils/prop-value';
 import getPropOptions from '../utils/prop-options';
 
+const previews = 20;
+
 function Showtimes() {
   const [state] = useContext(reducer);
 
@@ -44,83 +46,131 @@ function Showtimes() {
     location,
   ), [state.fields.theater, state.fields.theaters]);
 
-  const showtimes = useMemo(() => [...(state.showtimes || [])].filter(({
-    location,
-    offers,
-    workPresented,
-    props,
-    startDate: showtimeStartDate,
-  }) => {
-    if (offers.availability === 'https://schema.org/Discontinued') {
-      return false;
+  // Calculate the last end time, regardless of the day the show starts on.
+  const endOfDay = useMemo(() => {
+    if (!state.showtimes || state.showtimes.length === 0) {
+      return null;
     }
 
-    if (!movieFilter(workPresented)) {
-      return false;
+    // Showtimes sorted by enddatetime.
+    const showtimes = [...state.showtimes].sort((a, b) => {
+      const aStart = DateTime.fromISO(a.startDate);
+
+      const aStartSet = {
+        year: aStart.get('year'),
+        month: aStart.get('month'),
+        day: aStart.get('day'),
+      };
+
+      // Set both a and b to the same year, month, and day, so we can make a proper comparison.
+      const bStart = DateTime.fromISO(b.startDate).set(aStartSet);
+
+      const aDuration = Duration.fromISO(a.workPresented.duration);
+      const bDuration = Duration.fromISO(b.workPresented.duration);
+
+      return aStart.plus(aDuration) - bStart.plus(bDuration);
+    });
+
+    const last = [...showtimes].pop();
+
+    const lastStart = DateTime.fromISO(last.startDate);
+    const duration = Duration.fromISO(last.workPresented.duration);
+    const lastEnd = lastStart.plus(duration).plus({ minutes: previews });
+
+    // If the last start and end day are on the same day, then set the end to midnight.
+    if (lastStart.hasSame(lastEnd, 'day')) {
+      return lastEnd.plus({ days: 1 }).startOf('day').toISO();
     }
 
-    if (!theaterFilter(location)) {
-      return false;
-    }
+    return lastEnd.toISO();
+  }, [
+    state.showtimes,
+  ]);
 
-    if (!optionsFilter(props)) {
-      return false;
-    }
+  const showtimes = useMemo(() => {
+    const endofDayDateTime = endOfDay ? DateTime.fromISO(endOfDay) : null;
 
-    if (startTime || endTime) {
-      const showStart = DateTime.fromISO(showtimeStartDate);
-
-      if (startTime) {
-        const showSet = {
-          year: showStart.get('year'),
-          month: showStart.get('month'),
-          day: showStart.get('day'),
-        };
-
-        // Ensure that the show starts after the start time, even if it's on a different day.
-        if (showStart < startTime.set(showSet)) {
-          return false;
-        }
+    return [...(state.showtimes || [])].filter(({
+      location,
+      offers,
+      workPresented,
+      props,
+      startDate: showtimeStartDate,
+    }) => {
+      if (offers.availability === 'https://schema.org/Discontinued') {
+        return false;
       }
 
-      if (endTime) {
-        const duration = Duration.fromISO(workPresented.duration);
+      if (!movieFilter(workPresented)) {
+        return false;
+      }
 
-        const showSet = {
-          year: showStart.get('year'),
-          month: showStart.get('month'),
-          day: showStart.get('day'),
-        };
+      if (!theaterFilter(location)) {
+        return false;
+      }
 
-        if (duration.get('minutes') > 0) {
-          // Use the duration of the movie to determine the end, assume 20 minutes of previews.
-          const showEnd = showStart.plus(duration).plus({ minutes: 20 })
-          const realEnd = startTime && endTime < startTime
-            ? endTime.set(showSet).plus({ days: 1 })
-            : endTime.set(showSet);
+      if (!optionsFilter(props)) {
+        return false;
+      }
 
-          if (showEnd > realEnd) {
+      if (startTime || endTime) {
+        const showStart = DateTime.fromISO(showtimeStartDate);
+
+        if (startTime) {
+          const showSet = {
+            year: showStart.get('year'),
+            month: showStart.get('month'),
+            day: showStart.get('day'),
+          };
+
+          // Ensure that the show starts after the start time, even if it's on a different day.
+          if (showStart < startTime.set(showSet)) {
             return false;
           }
-        } else if (showStart > endTime.set(showSet)) {
+        }
+
+        if (endTime) {
+          const duration = Duration.fromISO(workPresented.duration);
+
+          const showSet = {
+            year: showStart.get('year'),
+            month: showStart.get('month'),
+            day: showStart.get('day'),
+          };
+
+          if (duration.get('minutes') > 0) {
+            // Use the duration of the movie to determine the end, assume 20 minutes of previews.
+            const showEnd = showStart.plus(duration).plus({ minutes: previews });
+
+            // if it's after the end of day, move forward by 1 day.
+            const realEnd = endofDayDateTime.set(showSet) < endTime.set(showSet)
+              ? endTime.set(showSet)
+              : endTime.set(showSet).plus({ days: 1 });
+
+            if (showEnd > realEnd) {
+              return false;
+            }
+          } else if (showStart > endTime.set(showSet)) {
           // Ensure that the show does not start after the end time if the real end time is
           // unkown.
-          return false;
+            return false;
+          }
         }
       }
-    }
 
-    return true;
-  }).sort((a, b) => (
+      return true;
+    }).sort((a, b) => (
     // @TODO make the sort configurable.
-    DateTime.fromISO(a.startDate) - DateTime.fromISO(b.startDate)
-  )), [
+      DateTime.fromISO(a.startDate) - DateTime.fromISO(b.startDate)
+    ));
+  }, [
     state.showtimes,
     optionsFilter,
     movieFilter,
     displayFilter,
     startTime,
     endTime,
+    endOfDay,
   ]);
 
   const hasFutureShowtimes = useMemo(() => {
@@ -241,7 +291,7 @@ function Showtimes() {
 
       const duration = Duration.fromISO(showtime.workPresented.duration);
       const showEnd = duration.get('minutes') > 0
-        ? showStart.plus(duration).plus({ minutes: 20 })
+        ? showStart.plus(duration).plus({ minutes: previews })
         : null;
 
       let dateDisplay;
