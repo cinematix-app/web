@@ -85,14 +85,16 @@ function Showtimes() {
 
       if (endTime) {
         const duration = Duration.fromISO(workPresented.duration);
+
+        const showSet = {
+          year: showStart.get('year'),
+          month: showStart.get('month'),
+          day: showStart.get('day'),
+        };
+
         if (duration.get('minutes') > 0) {
           // Use the duration of the movie to determine the end, assume 20 minutes of previews.
           const showEnd = showStart.plus(duration).plus({ minutes: 20 })
-          const showSet = {
-            year: showStart.get('year'),
-            month: showStart.get('month'),
-            day: showStart.get('day'),
-          };
           const realEnd = startTime && endTime < startTime
             ? endTime.set(showSet).plus({ days: 1 })
             : endTime.set(showSet);
@@ -100,6 +102,10 @@ function Showtimes() {
           if (showEnd > realEnd) {
             return false;
           }
+        } else if (showStart > endTime.set(showSet)) {
+          // Ensure that the show does not start after the end time if the real end time is
+          // unkown.
+          return false;
         }
       }
     }
