@@ -90,7 +90,7 @@ function Form({
     }
     const start = DateTime.fromFormat(startDate, dateFormat).startOf('day');
 
-    return start.plus({ days: 6 }).toFormat(dateFormat);
+    return start.plus({ days: 5 }).toFormat(dateFormat);
   }, [startDate]);
 
   const {
