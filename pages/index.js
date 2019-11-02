@@ -149,7 +149,7 @@ function resultReducer(state, action) {
         ...showtime,
         props: [
           ...toArray(showtime.location.amenityFeature),
-          ...toArray(showtime.offers.itemOffered.additionalProperty),
+          ...toArray(showtime.additionalProperty),
           ...textToCollection(showtime.workPresented.genre, props),
           ...textToCollection(showtime.videoFormat, props),
           ...textToCollection(showtime.workPresented.contentRating, props),
