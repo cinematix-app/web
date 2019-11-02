@@ -115,7 +115,7 @@ input[disabled] {
     }
 }
 
-.input-group-prepend label {
+.input-group .input-group-text {
     color: $dropdown-link-hover-color;
 }
 
