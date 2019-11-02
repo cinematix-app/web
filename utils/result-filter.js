@@ -1,9 +1,8 @@
 import { frame } from 'jsonld';
-import context from './context';
 
 async function resultFilter(result, type) {
   const data = await frame(result, {
-    '@context': context,
+    '@context': result['@context'],
     '@type': type,
   });
 

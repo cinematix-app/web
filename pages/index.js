@@ -15,7 +15,6 @@ import Showtimes from '../components/showtimes';
 import Form from '../components/form';
 import dateFormat from '../utils/date-format';
 import createQueryReactor from '../reactors/query';
-import context from '../utils/context';
 
 const initialState = {
   fields: {
@@ -61,20 +60,6 @@ function toArray(value) {
   }
 
   return Array.isArray(value) ? value : [value];
-}
-
-const replaceContext = [...Object.entries(context)].sort(([, a], [, b]) => (
-  b.length - a.length
-));
-
-function textToCollection(text, data) {
-  return [...toArray(text)].map((value) => {
-    const id = replaceContext.reduce((acc, [key, url]) => (
-      acc.replace(url, `${key}:`)
-    ), value);
-
-    return data.find(obj => obj['@id'] === id);
-  });
 }
 
 /**
@@ -150,9 +135,9 @@ function resultReducer(state, action) {
         props: [
           ...toArray(showtime.location.amenityFeature),
           ...toArray(showtime.additionalProperty),
-          ...textToCollection(showtime.workPresented.genre, props),
-          ...textToCollection(showtime.videoFormat, props),
-          ...textToCollection(showtime.workPresented.contentRating, props),
+          ...toArray(showtime.workPresented.genre),
+          ...toArray(showtime.videoFormat),
+          ...toArray(showtime.workPresented.contentRating),
         ],
       }
     )),

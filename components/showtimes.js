@@ -97,7 +97,7 @@ function Showtimes() {
       props,
       startDate: showtimeStartDate,
     }) => {
-      if (offers.availability === 'https://schema.org/Discontinued') {
+      if (offers.availability === 'Discontinued') {
         return false;
       }
 
@@ -274,7 +274,7 @@ function Showtimes() {
         'btn',
         'btn-block',
       ];
-      if (showtime.offers.availability === 'https://schema.org/InStock') {
+      if (showtime.offers.availability === 'InStock') {
         className = [
           ...className,
           'btn-outline-primary',
