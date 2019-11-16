@@ -7,9 +7,10 @@ import { getAssetFromKV, mapRequestToAsset } from '@cloudflare/kv-asset-handler'
  * 2. we will return an error message on exception in your Response rather
  *    than the default 404.html page.
  */
-const DEBUG = false
+const DEBUG = false;
 
-addEventListener('fetch', event => {
+// eslint-disable-next-line no-restricted-globals
+addEventListener('fetch', (event) => {
   try {
     event.respondWith(handleEvent(event))
   } catch (e) {
@@ -22,7 +23,7 @@ addEventListener('fetch', event => {
     }
     event.respondWith(new Response('Internal Error', { status: 500 }))
   }
-})
+});
 
 async function handleEvent(event) {
   const url = new URL(event.request.url)
