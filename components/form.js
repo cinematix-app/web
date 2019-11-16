@@ -343,47 +343,6 @@ function Form({
           />
         </div>
       </div>
-      <div className="row form-group">
-        <div className="col-2 col-lg-1">
-          <button type="button" className="btn btn-outline-secondary btn-block">Price</button>
-        </div>
-        <div className="input-group col-md col-12">
-          <div className="input-group-prepend">
-            <span className="input-group-text">$</span>
-          </div>
-          <input
-            className="form-control"
-            type="number"
-            id="priceLow"
-            name="priceLow"
-            // value={state.fields.zipCode}
-            // onChange={handleChange}
-            // disabled={locationDisabled}
-            disabled
-          />
-          <div className="input-group-append">
-            <span className="input-group-text">.00</span>
-          </div>
-        </div>
-        <div className="input-group col-md col-12">
-          <div className="input-group-prepend">
-            <span className="input-group-text">$</span>
-          </div>
-          <input
-            className="form-control"
-            type="number"
-            id="priceHigh"
-            name="priceHigh"
-            // value={state.fields.zipCode}
-            // onChange={handleChange}
-            // disabled={locationDisabled}
-            disabled
-          />
-          <div className="input-group-append">
-            <span className="input-group-text">.00</span>
-          </div>
-        </div>
-      </div>
     </form>
   );
 }
