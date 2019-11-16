@@ -4,9 +4,9 @@
   "scripts": {
     "dev": "next",
     "build": "next build",
-    "deploy": "next build && next export && gsutil -m rsync -d -r out gs://cinematix.app",
+    "deploy": "next build && next export && wrangler publish",
     "start": "next start",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "eslint ."
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
