@@ -10,7 +10,17 @@ import { getAssetFromKV } from '@cloudflare/kv-asset-handler';
 const DEBUG = false;
 
 async function handleEvent(event) {
+  const url = new URL(event.request.url);
   const options = {};
+
+  // If this is in the /_next/ folder than it can effectively be
+  // cached forever since the next version will have new filenames.
+  if (url.pathname.match(/^\/_next\/.*$/)) {
+    options.cacheControl = {
+      edgeTTL: 31536000, // 1 year
+      browserTTL: 31556952, // 1 year
+    };
+  }
 
   /**
    * You can add custom logic to how we fetch your assets
