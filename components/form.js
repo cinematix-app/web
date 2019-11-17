@@ -13,6 +13,8 @@ import getOptions from '../utils/options';
 import getPropValue from '../utils/prop-value';
 import getPropOptions from '../utils/prop-options';
 import createPropertySearchReactor from '../reactors/property-search';
+import Limit from './form/limit';
+import Ticketing from './form/ticketing';
 
 const ticketingOptions = [
   { value: 'both', label: 'Both' },
@@ -183,6 +185,14 @@ function Form({
             onChange={ticketingChange}
             isDisabled={locationDisabled}
           />
+        </div>
+      </div>
+      <div className="row flex-wrap justify-content-around">
+        <div className="col flex-grow">
+          <Limit />
+        </div>
+        <div className="col flex-grow">
+          <Ticketing options={ticketingOptions} />
         </div>
       </div>
       <div className="row form-group">
