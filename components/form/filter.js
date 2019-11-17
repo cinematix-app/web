@@ -5,7 +5,12 @@ import {
   DropdownMenu,
 } from 'reactstrap';
 
-function Filter({ title, disabled, className, children }) {
+function Filter({
+  title,
+  disabled,
+  className,
+  children,
+}) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const toggle = () => setDropdownOpen(prevState => !prevState);
