@@ -1,6 +1,8 @@
 @import "~bootstrap/scss/_functions";
 
 // Variables.
+// @TODO Inlcude Lato for download?
+$font-family-sans-serif: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Lato, Helvetica, Arial, sans-serif;
 $body-bg: #55555f;
 $primary:  #FEF638;
 $secondary:  lighten($body-bg, 50%);
