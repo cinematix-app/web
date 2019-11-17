@@ -1,8 +1,9 @@
 import Filter from './filter';
 
-function Limit() {
+function Limit({ value, onChange, disabled }) {
+  const number = parseInt(value, 10) || 0;
   return (
-    <Filter title="5 Theaters">
+    <Filter title={`${number.toLocaleString()} Theaters`} className="p-3">
       <label htmlFor="limit" className="text-nowrap">Maximum Theaters</label>
       <input
         className="form-control"
@@ -10,10 +11,10 @@ function Limit() {
         id="limit"
         name="limit"
         min="0"
-        value={5}
-        // value={state.fields.limit}
-        // onChange={handleChange}
-        // disabled={locationDisabled}
+        max="20"
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
       />
     </Filter>
   );

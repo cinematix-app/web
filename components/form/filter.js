@@ -5,15 +5,15 @@ import {
   DropdownMenu,
 } from 'reactstrap';
 
-function Filter({ title, disabled, children }) {
+function Filter({ title, disabled, className, children }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const toggle = () => setDropdownOpen(prevState => !prevState);
 
   return (
-    <Dropdown isOpen={dropdownOpen} toggle={toggle} className="form-group">
+    <Dropdown isOpen={disabled === true ? false : dropdownOpen} toggle={toggle} className="form-group">
       <DropdownToggle outline block disabled={disabled} className="text-nowrap" active={dropdownOpen}>{title}</DropdownToggle>
-      <DropdownMenu className="p-3">
+      <DropdownMenu className={className}>
         {children}
       </DropdownMenu>
     </Dropdown>

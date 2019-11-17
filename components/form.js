@@ -17,7 +17,7 @@ import Limit from './form/limit';
 import Ticketing from './form/ticketing';
 
 const ticketingOptions = [
-  { value: 'both', label: 'Both' },
+  { value: 'any', label: 'Any' },
   { value: 'online', label: 'Online' },
   { value: 'offline', label: 'Offline' },
 ];
@@ -189,10 +189,18 @@ function Form({
       </div>
       <div className="row flex-wrap justify-content-around">
         <div className="col flex-grow">
-          <Limit />
+          <Limit
+            value={state.fields.limit}
+            onChange={handleChange}
+            disabled={locationDisabled}
+          />
         </div>
         <div className="col flex-grow">
-          <Ticketing options={ticketingOptions} />
+          <Ticketing
+            value={state.fields.ticketing}
+            onChange={handleChange}
+            disabled={locationDisabled}
+          />
         </div>
       </div>
       <div className="row form-group">

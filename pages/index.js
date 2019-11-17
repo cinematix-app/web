@@ -20,7 +20,7 @@ const initialState = {
   fields: {
     zipCode: '',
     limit: '5',
-    ticketing: 'both',
+    ticketing: 'any',
     startDate: 'today',
     startTime: '',
     endDate: 'today',
