@@ -13,7 +13,8 @@ $input-border-color: $secondary;
 $input-color: $body-color;
 $dropdown-link-color: $body-color;
 $input-color-placeholder: darken($body-bg, 50%);
-$dropdown-bg: $body-color;
+$dropdown-color: $body-color;
+$dropdown-bg: $body-bg;
 $dropdown-border-color: $body-color;
 
 @import "~bootstrap/scss/_variables";
@@ -120,11 +121,10 @@ input[disabled] {
 }
 
 .dropdown-menu {
-    color: $body-bg;
     min-width: 100%;
     .form-control {
-        border-color: $body-bg;
-        color: $body-bg;
+        border-color: $dropdown-color;
+        color: $dropdown-color;
     }
 }
 

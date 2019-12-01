@@ -15,6 +15,7 @@ import Showtimes from '../components/showtimes';
 import Form from '../components/form';
 import dateFormat from '../utils/date-format';
 import createQueryReactor from '../reactors/query';
+import getFormattedDateTime from '../utils/formatted-datetime';
 
 const initialState = {
   fields: {
@@ -25,8 +26,8 @@ const initialState = {
     startTime: '',
     endDate: 'today',
     endTime: '',
-    theater: 'include',
     theaters: [],
+    theatersx: [],
     movie: 'include',
     movies: [],
     props: [],
@@ -39,6 +40,10 @@ const initialState = {
   props: [],
   search: {
     theaters: {
+      fetching: false,
+      result: [],
+    },
+    theatersx: {
       fetching: false,
       result: [],
     },
@@ -95,25 +100,6 @@ function getDateTime(date) {
       return DateTime.local().startOf('day').plus({ days: 1 });
     default:
       return DateTime.fromFormat(date, dateFormat);
-  }
-}
-
-/**
- * Get datetime string
- *
- * @param {string} date
- * @return {string}
- */
-function getFormattedDateTime(today, date) {
-  switch (date) {
-    case 'today':
-      return today;
-    case 'tomorrow':
-      return today
-        ? DateTime.fromFormat(today, dateFormat).plus({ days: 1 }).toFormat(dateFormat)
-        : null;
-    default:
-      return date;
   }
 }
 
@@ -195,17 +181,29 @@ function reducer(state, action) {
     case 'result':
       return resultReducer(state, action);
     case 'status':
+      if (state.status === action.status) {
+        return state;
+      }
+
       return {
         ...state,
         status: action.status,
       };
     case 'error':
+      if (state.status === 'error') {
+        return state;
+      }
+
       return {
         ...state,
         status: 'error',
         error: action.error,
       };
     case 'today':
+      if (state.today === action.value) {
+        return state;
+      }
+
       return {
         ...state,
         today: action.value,
@@ -252,12 +250,11 @@ const locaitonFields = [
   'zipCode',
   'limit',
   'ticketing',
+  'theatersx',
 ];
 
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
-
-  const locationDisabled = state.fields.theater === 'include' && state.fields.theaters.length > 0;
 
   // Update the query
   // @TODO Pass this in with server rendering!
@@ -310,7 +307,6 @@ function Index() {
         zipCode,
         limit,
         ticketing,
-        theater,
         theaters,
         start,
         end,
@@ -320,14 +316,13 @@ function Index() {
         ticketing,
         startDate: start,
         endDate: end,
-        theaters: theater === 'include' ? theaters : [],
+        theaters,
       }))),
     ))
   ), dispatch, [
     state.fields.zipCode,
     state.fields.limit,
     state.fields.ticketing,
-    state.fields.theater,
     state.fields.theaters,
     startDate,
     endDate,
@@ -342,7 +337,7 @@ function Index() {
 
     const searchParams = new URLSearchParams();
     Object.keys(state.fields).forEach((name) => {
-      if (locationDisabled && locaitonFields.includes(name)) {
+      if (state.fields.theaters.length > 0 && locaitonFields.includes(name)) {
         searchParams.delete(name);
       } else if (state.fields[name] !== initialState.fields[name] && state.fields[name] !== '') {
         if (Array.isArray(state.fields[name])) {
@@ -361,7 +356,6 @@ function Index() {
     const search = searchParams.toString();
     Router.replace(search ? `/?${search}` : '/');
   }, [
-    locationDisabled,
     state.fields.zipCode,
     state.fields.limit,
     state.fields.ticketing,
@@ -369,8 +363,8 @@ function Index() {
     state.fields.startTime,
     state.fields.endDate,
     state.fields.endTime,
-    state.fields.theater,
     state.fields.theaters,
+    state.fields.theatersx,
     state.fields.movie,
     state.fields.movies,
     state.fields.props,
@@ -393,7 +387,7 @@ function Index() {
   return (
     <Layout>
       <ReducerContext.Provider value={[state, dispatch]}>
-        <Form locationDisabled={locationDisabled} startDate={startDate} />
+        <Form />
         <Status status={state.status} error={state.error}>
           <Showtimes />
         </Status>

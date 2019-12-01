@@ -40,11 +40,11 @@ function Showtimes() {
     workPresented,
   ), [state.fields.movies, state.fields.movies]);
 
-  const theaterFilter = useCallback(location => displayFilterExclusive(
+  const theaterFilter = useCallback(location => displayFilter(
     state.fields.theaters,
-    state.fields.theater,
+    state.fields.theatersx,
     location,
-  ), [state.fields.theater, state.fields.theaters]);
+  ), [state.fields.theaters, state.fields.theatersx]);
 
   // Calculate the last end time, regardless of the day the show starts on.
   const endOfDay = useMemo(() => {
