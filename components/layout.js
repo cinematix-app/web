@@ -8,7 +8,7 @@ function Layout({ children }) {
       <Head>
         <title>Cinematix</title>
         <meta property="og:title" content="Cinematix" />
-        <meta property="og:description" content="Find showtimes and buy movie tickets fast." />
+        <meta property="og:description" content="A faster, better way to find movie showtimes that work for you." />
         <meta property="og:url" content="https://cinematix.app/" />
         <meta property="og:image" content="https://cinematix.app/static/og2.png" />
         <meta property="og:type" content="website" />
