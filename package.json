@@ -6,7 +6,7 @@
     "build": "next build && next export",
     "deploy": "next build && next export && wrangler publish",
     "start": "next start",
-    "test": "eslint ."
+    "test": "eslint --ignore-path .gitignore ."
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {

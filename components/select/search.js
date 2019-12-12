@@ -1,4 +1,9 @@
-import { useCallback, useContext, useMemo, useReducer } from 'react';
+import {
+  useCallback,
+  useContext,
+  useMemo,
+  useReducer,
+} from 'react';
 import Select from 'react-select';
 import useReactor from '@cinematix/reactor';
 import getOptions from '../../utils/options';
@@ -29,7 +34,12 @@ function searchReducer(state, action) {
   }
 }
 
-function SearchSelect({ id, list, property, disabled }) {
+function SearchSelect({
+  id,
+  list,
+  property,
+  disabled,
+}) {
   const [state, dispatch] = useContext(reducer);
   const [searchState, searchDispatch] = useReducer(searchReducer, initialState);
 
