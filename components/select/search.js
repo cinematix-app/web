@@ -1,12 +1,10 @@
 import {
   useCallback,
   useContext,
-  useMemo,
   useReducer,
 } from 'react';
 import Select from 'react-select';
 import useReactor from '@cinematix/reactor';
-import getOptions from '../../utils/options';
 import useHandleListChange from '../../hooks/handle-list-change';
 import reducer from '../../context/reducer';
 import createPropertySearchReactor from '../../reactors/property-search';
