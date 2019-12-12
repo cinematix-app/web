@@ -2,7 +2,7 @@ import { useCallback, useContext, useMemo } from 'react';
 import Select from 'react-select';
 import reducer from '../../context/reducer';
 import useHandleChange from '../../hooks/handle-change';
-import TheaterSelect from '../select/theater';
+import SearchSelect from '../select/search';
 
 const ticketingOptions = [
   { value: 'any', label: 'Any' },
@@ -60,7 +60,7 @@ function Theaters() {
       <div className="form-group">
         <label htmlFor="theatersx">Exclude</label>
         <div>
-          <TheaterSelect id="theatersx" disabled={locationDisabled} />
+          <SearchSelect id="theatersx" list="theaters" property="P6644" disabled={locationDisabled} />
         </div>
       </div>
     </>

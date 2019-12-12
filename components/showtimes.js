@@ -38,7 +38,10 @@ function Showtimes() {
     state.fields.movies,
     state.fields.movie,
     workPresented,
-  ), [state.fields.movies, state.fields.movies]);
+  ), [
+    state.fields.movie,
+    state.fields.movies,
+  ]);
 
   const theaterFilter = useCallback(location => displayFilter(
     state.fields.theaters,

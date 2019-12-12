@@ -14,7 +14,7 @@ import {
 } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 
-function createPropertySearchReactor(type, id) {
+function createPropertySearchReactor(id) {
   return value$ => value$.pipe(
     filter(v => !!v),
     distinctUntilChanged((z, y) => z === y),
@@ -33,22 +33,19 @@ function createPropertySearchReactor(type, id) {
 
       return merge(
         of({
-          type: 'searchFetch',
-          field: type,
+          type: 'fetch',
         }),
         ajax.getJSON(url.toString()).pipe(
           flatMap((data) => {
             if (!data.query) {
               return of({
-                type: 'searchResult',
-                field: type,
+                type: 'result',
               });
             }
 
             if (!data.query.search || data.query.search.length === 0) {
               return of({
-                type: 'searchResult',
-                field: type,
+                type: 'result',
               });
             }
 
@@ -130,8 +127,7 @@ function createPropertySearchReactor(type, id) {
                 }, []);
 
                 return {
-                  type: 'searchResult',
-                  field: type,
+                  type: 'result',
                   result,
                 };
               }),
@@ -139,8 +135,7 @@ function createPropertySearchReactor(type, id) {
           }),
           catchError(() => (
             of({
-              type: 'searchResult',
-              field: type,
+              type: 'result',
             })
           )),
         ),

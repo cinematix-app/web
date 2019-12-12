@@ -59,13 +59,15 @@ function createQueryReactor(initialState) {
             forkJoin([
               resultFilter(data, 'ScreeningEvent'),
               resultFilter(data, 'MovieTheater'),
+              resultFilter(data, 'x:Amenity'),
               resultFilter(data, 'Movie'),
               resultFilter(data, ['x:Genre', 'x:Rating', 'x:Amenity', 'x:Format', 'x:Property']),
             ]).pipe(
-              map(([showtimes, theaters, movies, props]) => ({
+              map(([showtimes, theaters, amenities, movies, props]) => ({
                 type: 'result',
                 showtimes,
                 theaters,
+                amenities,
                 movies,
                 props,
               })),

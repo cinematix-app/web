@@ -36,22 +36,9 @@ const initialState = {
   today: null,
   showtimes: [],
   theaters: [],
+  amenities: [],
   movies: [],
   props: [],
-  search: {
-    theaters: {
-      fetching: false,
-      result: [],
-    },
-    theatersx: {
-      fetching: false,
-      result: [],
-    },
-    movies: {
-      fetching: false,
-      result: [],
-    },
-  },
   searchParsed: false,
   status: 'waiting',
   error: null,
@@ -109,6 +96,7 @@ function resultReducer(state, action) {
   }
 
   const theaters = mergeList(state.theaters, action.theaters || []);
+  const amenities = mergeList(state.amenities, action.amenities || []);
   const movies = mergeList(state.movies, action.movies || []);
   const props = mergeList(state.props, action.props || []);
 
@@ -118,6 +106,7 @@ function resultReducer(state, action) {
     showtimes: (action.showtimes || []).map(showtime => (
       {
         ...showtime,
+        // @TODO This shouldn't be necessary now?
         props: [
           ...toArray(showtime.location.amenityFeature),
           ...toArray(showtime.additionalProperty),
@@ -128,6 +117,7 @@ function resultReducer(state, action) {
       }
     )),
     theaters,
+    amenities,
     movies,
     props,
   };
@@ -207,28 +197,6 @@ function reducer(state, action) {
       return {
         ...state,
         today: action.value,
-      };
-    case 'searchFetch':
-      return {
-        ...state,
-        search: {
-          ...state.search,
-          [action.field]: {
-            ...state.search[action.field],
-            fetching: true,
-          },
-        },
-      };
-    case 'searchResult':
-      return {
-        ...state,
-        search: {
-          ...state.search,
-          [action.field]: {
-            fetching: false,
-            result: action.result || [],
-          },
-        },
       };
     case 'searchParsed':
       return {

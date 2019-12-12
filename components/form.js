@@ -8,7 +8,7 @@ import reducer from '../context/reducer';
 import getPropValue from '../utils/prop-value';
 import getPropOptions from '../utils/prop-options';
 import Filters from './filters/filters';
-import TheaterSelect from './select/theater';
+import SearchSelect from './select/search';
 
 function Form() {
   const [state, dispatch] = useContext(reducer);
@@ -71,7 +71,7 @@ function Form() {
         </div>
         <label className="col-2 col-lg-1 col-form-label text-nowrap" htmlFor="theaters">Theaters</label>
         <div className="col-md col-12">
-          <TheaterSelect id="theaters" />
+          <SearchSelect id="theaters" property="P6644" />
         </div>
       </div>
       <div className="row">
