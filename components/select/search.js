@@ -10,6 +10,7 @@ import getOptions from '../../utils/options';
 import useHandleListChange from '../../hooks/handle-list-change';
 import reducer from '../../context/reducer';
 import createPropertySearchReactor from '../../reactors/property-search';
+import useOptionsValues from '../../hooks/options-values';
 
 const initialState = {
   result: [],
@@ -36,24 +37,22 @@ function searchReducer(state, action) {
 
 function SearchSelect({
   id,
-  list,
   property,
+  exclude,
   disabled,
 }) {
   const [state, dispatch] = useContext(reducer);
   const [searchState, searchDispatch] = useReducer(searchReducer, initialState);
 
-  const listId = list || id;
-  const options = useMemo(
-    () => getOptions(state[listId], state.fields[id], searchState.result),
-    [state[listId], state.fields[id], searchState.result],
+  const fieldId = exclude ? `${id}x` : id;
+
+  const [options, values] = useOptionsValues(
+    state[id],
+    state.fields[fieldId],
+    searchState.result,
   );
 
-  const values = useMemo(() => state.fields[id].map(
-    sid => options.find(({ value }) => sid === value),
-  ), [state.fields[id], options]);
-
-  const handleListChange = useHandleListChange(dispatch, id);
+  const handleListChange = useHandleListChange(dispatch, fieldId);
 
   const searchReactor = createPropertySearchReactor(property);
   const search = useReactor(searchReactor, searchDispatch);
@@ -69,7 +68,7 @@ function SearchSelect({
     return 'No Results';
   }, [noOptions]);
 
-  const placeholder = useMemo(() => (options.length === 0 ? 'Search...' : undefined), [options.length]);
+  const placeholder = options.length === 0 ? 'Search...' : undefined;
 
   return (
     <Select
