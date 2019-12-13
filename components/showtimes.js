@@ -8,26 +8,28 @@ import reducer from '../context/reducer';
 import getTodayDateTime from '../utils/today-datetime';
 import useDisplayFilter from '../hooks/display-filter';
 import useDisplayFilterExclusive from '../hooks/display-filter-exclusive';
+import queryReducer from '../context/query-reducer';
 
 const previews = 20;
 
 function Showtimes() {
   const [state] = useContext(reducer);
+  const [queryState] = useContext(queryReducer);
 
   const startTime = useMemo(() => (
-    state.fields.startTime ? DateTime.fromISO(state.fields.startTime) : null
-  ), [state.fields.startTime]);
+    queryState.startTime ? DateTime.fromISO(queryState.startTime) : null
+  ), [queryState.startTime]);
   const endTime = useMemo(() => (
-    state.fields.endTime ? DateTime.fromISO(state.fields.endTime) : null
-  ), [state.fields.endTime]);
+    queryState.endTime ? DateTime.fromISO(queryState.endTime) : null
+  ), [queryState.endTime]);
 
-  const movieFilter = useDisplayFilterExclusive(state.fields.movies, state.fields.movie);
-  const theaterFilter = useDisplayFilter(state.fields.theaters, state.fields.theatersx);
-  const genreFilter = useDisplayFilter(state.fields.genres, state.fields.genresx);
-  const amenityFilter = useDisplayFilter(state.fields.amenities, state.fields.amenitiesx);
-  const ratingFilter = useDisplayFilterExclusive(state.fields.ratings, state.fields.rating);
-  const formatFilter = useDisplayFilterExclusive(state.fields.formats, state.fields.format);
-  const propFilter = useDisplayFilter(state.fields.props, state.fields.propsx);
+  const movieFilter = useDisplayFilterExclusive(queryState.movies,queryState.movie);
+  const theaterFilter = useDisplayFilter(queryState.theaters, queryState.theatersx);
+  const genreFilter = useDisplayFilter(queryState.genres, queryState.genresx);
+  const amenityFilter = useDisplayFilter(queryState.amenities, queryState.amenitiesx);
+  const ratingFilter = useDisplayFilterExclusive(queryState.ratings, queryState.rating);
+  const formatFilter = useDisplayFilterExclusive(queryState.formats, queryState.format);
+  const propFilter = useDisplayFilter(queryState.props, queryState.propsx);
 
   // Calculate the last end time, regardless of the day the show starts on.
   const endOfDay = useMemo(() => {

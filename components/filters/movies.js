@@ -1,12 +1,12 @@
 import { useContext } from 'react';
-import reducer from '../../context/reducer';
 import useHandleChange from '../../hooks/handle-change';
 import SearchSelect from '../select/search';
 import PropSelect from '../select/prop';
 import PropMultiSelect from '../select/prop-multi';
+import queryReducer from '../../context/query-reducer';
 
 function Movies() {
-  const [state, dispatch] = useContext(reducer);
+  const [state, dispatch] = useContext(queryReducer);
   const handleChange = useHandleChange(dispatch);
 
   return (
@@ -22,8 +22,8 @@ function Movies() {
                   name="movie"
                   value="include"
                   onClick={handleChange}
-                  aria-pressed={state.fields.movie === 'include'}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.movie === 'include' ? 'active' : ''].join(' ')}
+                  aria-pressed={state.movie === 'include'}
+                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.movie === 'include' ? 'active' : ''].join(' ')}
                 >
                   Include
                 </button>
@@ -32,8 +32,8 @@ function Movies() {
                   name="movie"
                   value="exclude"
                   onClick={handleChange}
-                  aria-pressed={state.fields.movie === 'exclude'}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', state.fields.movie === 'exclude' ? 'active' : ''].join(' ')}
+                  aria-pressed={state.movie === 'exclude'}
+                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', state.movie === 'exclude' ? 'active' : ''].join(' ')}
                 >
                   Exclude
                 </button>

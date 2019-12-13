@@ -9,6 +9,7 @@ import useHandleListChange from '../../hooks/handle-list-change';
 import reducer from '../../context/reducer';
 import createPropertySearchReactor from '../../reactors/property-search';
 import useOptionsValues from '../../hooks/options-values';
+import queryReducer from '../../context/query-reducer';
 
 const initialState = {
   result: [],
@@ -40,14 +41,15 @@ function SearchSelect({
   disabled,
   className,
 }) {
-  const [state, dispatch] = useContext(reducer);
+  const [state] = useContext(reducer);
+  const [queryState, dispatch] = useContext(queryReducer);
   const [searchState, searchDispatch] = useReducer(searchReducer, initialState);
 
   const fieldId = exclude ? `${id}x` : id;
 
   const [options, values] = useOptionsValues(
     state[id],
-    state.fields[fieldId],
+    queryState[fieldId],
     searchState.result,
   );
 

@@ -3,12 +3,12 @@ import {
   useEffect,
   useMemo,
 } from 'react';
-import Router from 'next/router';
 import { of, timer } from 'rxjs';
 import { flatMap } from 'rxjs/operators';
 import { DateTime } from 'luxon';
 import useReactor from '@cinematix/reactor';
 import ReducerContext from '../context/reducer';
+import QueryReducerContext from '../context/query-reducer';
 import Layout from '../components/layout';
 import Status from '../components/status';
 import Showtimes from '../components/showtimes';
@@ -16,31 +16,33 @@ import Form from '../components/form';
 import dateFormat from '../utils/date-format';
 import createQueryReactor from '../reactors/query';
 import getFormattedDateTime from '../utils/formatted-datetime';
+import useQueryReducer from '../hooks/query-reducer';
+
+const defaultQuery = {
+  zipCode: '',
+  limit: '5',
+  ticketing: 'any',
+  startDate: 'today',
+  startTime: '',
+  endDate: 'today',
+  endTime: '',
+  theaters: [],
+  theatersx: [],
+  amenities: [],
+  amenitiesx: [],
+  movie: 'include',
+  movies: [],
+  rating: 'include',
+  ratings: [],
+  genres: [],
+  genresx: [],
+  format: 'include',
+  formats: [],
+  props: [],
+  propsx: [],
+};
 
 const initialState = {
-  fields: {
-    zipCode: '',
-    limit: '5',
-    ticketing: 'any',
-    startDate: 'today',
-    startTime: '',
-    endDate: 'today',
-    endTime: '',
-    theaters: [],
-    theatersx: [],
-    amenities: [],
-    amenitiesx: [],
-    movie: 'include',
-    movies: [],
-    rating: 'include',
-    ratings: [],
-    genres: [],
-    genresx: [],
-    format: 'include',
-    formats: [],
-    props: [],
-    propsx: [],
-  },
   today: null,
   showtimes: [],
   theaters: [],
@@ -50,12 +52,11 @@ const initialState = {
   ratings: [],
   formats: [],
   props: [],
-  searchParsed: false,
   status: 'waiting',
   error: null,
 };
 
-const queryReactor = createQueryReactor(initialState);
+const queryReactor = createQueryReactor(defaultQuery);
 
 /**
  * Take an existing list and a new list and merge them updating
@@ -112,51 +113,8 @@ function resultReducer(state, action) {
   };
 }
 
-function changeReducer(state, action) {
-  if (action.type !== 'change') {
-    return state;
-  }
-
-  // If the startDate changes, move the endDate along to prevent an error.
-  if (action.name === 'startDate') {
-    let end = state.fields.endDate;
-    const startDate = getDateTime(action.value);
-    const endDate = getDateTime(state.fields.endDate);
-
-    // Move endDate forward.
-    if (startDate > endDate) {
-      end = action.value;
-    } else {
-      const range = startDate.plus({ days: 7 });
-      // move endDate backwards.
-      if (range < endDate) {
-        end = range.toFormat(dateFormat);
-      }
-    }
-
-    return {
-      ...state,
-      fields: {
-        ...state.fields,
-        [action.name]: action.value,
-        endDate: end,
-      },
-    };
-  }
-
-  return {
-    ...state,
-    fields: {
-      ...state.fields,
-      [action.name]: action.value,
-    },
-  };
-}
-
 function reducer(state, action) {
   switch (action.type) {
-    case 'change':
-      return changeReducer(state, action);
     case 'result':
       return resultReducer(state, action);
     case 'status':
@@ -187,68 +145,67 @@ function reducer(state, action) {
         ...state,
         today: action.value,
       };
-    case 'searchParsed':
-      return {
-        ...state,
-        fields: {
-          ...state.fields,
-          ...action.search,
-        },
-        searchParsed: true,
-      };
     default:
       throw new Error();
   }
 }
 
-const locaitonFields = [
-  'zipCode',
-  'limit',
-  'ticketing',
-  'theatersx',
-];
+function queryChangeReducer(state, action) {
+  if (action.type !== 'change') {
+    return state;
+  }
+
+  // If the startDate changes, move the endDate along to prevent an error.
+  if (action.name === 'startDate') {
+    let end = state.endDate;
+    const startDate = getDateTime(action.value);
+    const endDate = getDateTime(state.endDate);
+
+    // Move endDate forward.
+    if (startDate > endDate) {
+      end = action.value;
+    } else {
+      const range = startDate.plus({ days: 7 });
+      // move endDate backwards.
+      if (range < endDate) {
+        end = range.toFormat(dateFormat);
+      }
+    }
+
+    return {
+      ...state,
+      [action.name]: action.value,
+      endDate: end,
+    };
+  }
+
+  return {
+    ...state,
+    [action.name]: action.value,
+  };
+}
+
+function queryReducer(state, action) {
+  switch (action.type) {
+    case 'change':
+      return queryChangeReducer(state, action);
+    default:
+      throw new Error('Invalid Action');
+  }
+}
 
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
-
-  // Update the query
-  // @TODO Pass this in with server rendering!
-  useEffect(() => {
-    if (!state.searchParsed && typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      const search = [...url.searchParams.keys()].reduce((acc, name) => {
-        if (typeof initialState.fields[name] === 'undefined') {
-          return acc;
-        }
-
-        let value;
-        if (Array.isArray(initialState.fields[name])) {
-          value = url.searchParams.getAll(name);
-        } else {
-          value = url.searchParams.get(name);
-        }
-
-        return {
-          ...acc,
-          [name]: value,
-        };
-      }, {});
-
-      dispatch({
-        type: 'searchParsed',
-        search,
-      });
-    }
-  }, []);
+  const [queryState, queryDispatch] = useQueryReducer(queryReducer, defaultQuery);
 
   const startDate = useMemo(
-    () => getFormattedDateTime(state.today, state.fields.startDate),
-    [state.today, state.fields.startDate],
+    () => getFormattedDateTime(state.today, queryState.startDate),
+    [state.today, queryState.startDate],
   );
 
   const endDate = useMemo(
-    () => getFormattedDateTime(state.today, state.fields.endDate),
-    [state.today, state.fields.endDate],
+    () => getFormattedDateTime(state.today, queryState.endDate),
+    [state.today, queryState.endDate],
   );
 
   // Update the query.
@@ -272,63 +229,12 @@ function Index() {
       }))),
     ))
   ), dispatch, [
-    state.fields.zipCode,
-    state.fields.limit,
-    state.fields.ticketing,
-    state.fields.theaters,
+    queryState.zipCode,
+    queryState.limit,
+    queryState.ticketing,
+    queryState.theaters,
     startDate,
     endDate,
-  ]);
-
-  // Update the route.
-  useEffect(() => {
-    // Wait for the search to be parsed.
-    if (!state.searchParsed) {
-      return;
-    }
-
-    const searchParams = new URLSearchParams();
-    Object.keys(state.fields).forEach((name) => {
-      if (state.fields.theaters.length > 0 && locaitonFields.includes(name)) {
-        searchParams.delete(name);
-      } else if (state.fields[name] !== initialState.fields[name] && state.fields[name] !== '') {
-        if (Array.isArray(state.fields[name])) {
-          searchParams.delete(name);
-          state.fields[name].forEach(v => (
-            searchParams.append(name, v)
-          ));
-        } else {
-          searchParams.set(name, state.fields[name]);
-        }
-      } else {
-        searchParams.delete(name);
-      }
-    });
-
-    const search = searchParams.toString();
-    Router.replace(search ? `/?${search}` : '/');
-  }, [
-    state.fields.zipCode,
-    state.fields.limit,
-    state.fields.ticketing,
-    state.fields.startDate,
-    state.fields.startTime,
-    state.fields.endDate,
-    state.fields.endTime,
-    state.fields.theaters,
-    state.fields.theatersx,
-    state.fields.amenities,
-    state.fields.amenitiesx,
-    state.fields.movie,
-    state.fields.movies,
-    state.fields.genres,
-    state.fields.genresx,
-    state.fields.rating,
-    state.fields.ratings,
-    state.fields.format,
-    state.fields.formats,
-    state.fields.props,
-    state.fields.propsx,
   ]);
 
   // Update "today" at midnight each day.
@@ -346,12 +252,14 @@ function Index() {
 
   return (
     <Layout>
-      <ReducerContext.Provider value={[state, dispatch]}>
-        <Form />
-        <Status status={state.status} error={state.error}>
-          <Showtimes />
-        </Status>
-      </ReducerContext.Provider>
+      <QueryReducerContext.Provider value={[queryState, queryDispatch]}>
+        <ReducerContext.Provider value={[state, dispatch]}>
+          <Form />
+          <Status status={state.status} error={state.error}>
+            <Showtimes />
+          </Status>
+        </ReducerContext.Provider>
+      </QueryReducerContext.Provider>
     </Layout>
   );
 }

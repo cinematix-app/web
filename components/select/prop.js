@@ -4,10 +4,12 @@ import reducer from '../../context/reducer';
 import useOptionsValues from '../../hooks/options-values';
 import useHandleListChange from '../../hooks/handle-list-change';
 import useHandleChange from '../../hooks/handle-change';
+import queryReducer from '../../context/query-reducer';
 
 function PropSelect({ id, button }) {
-  const [state, dispatch] = useContext(reducer);
-  const [options, values] = useOptionsValues(state[id], state.fields[id]);
+  const [state] = useContext(reducer);
+  const [queryState, dispatch] = useContext(queryReducer);
+  const [options, values] = useOptionsValues(state[id], queryState[id]);
   const handleListChange = useHandleListChange(dispatch, id);
   const disabled = options.length === 0;
 
@@ -23,8 +25,8 @@ function PropSelect({ id, button }) {
               name={button}
               value="include"
               onClick={handleChange}
-              aria-pressed={state.fields[button] === 'include'}
-              className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields[button] === 'include' ? 'active' : ''].join(' ')}
+              aria-pressed={queryState[button] === 'include'}
+              className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', queryState[button] === 'include' ? 'active' : ''].join(' ')}
             >
                   Include
             </button>
@@ -33,8 +35,8 @@ function PropSelect({ id, button }) {
               name={button}
               value="exclude"
               onClick={handleChange}
-              aria-pressed={state.fields[button] === 'exclude'}
-              className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', state.fields[button] === 'exclude' ? 'active' : ''].join(' ')}
+              aria-pressed={queryState[button] === 'exclude'}
+              className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', queryState[button] === 'exclude' ? 'active' : ''].join(' ')}
             >
                   Exclude
             </button>

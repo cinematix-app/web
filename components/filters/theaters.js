@@ -1,9 +1,9 @@
 import { useCallback, useContext, useMemo } from 'react';
 import Select from 'react-select';
-import reducer from '../../context/reducer';
 import useHandleChange from '../../hooks/handle-change';
 import SearchSelect from '../select/search';
 import PropMultiSelect from '../select/prop-multi';
+import queryReducer from '../../context/query-reducer';
 
 const ticketingOptions = [
   { value: 'any', label: 'Any' },
@@ -12,11 +12,11 @@ const ticketingOptions = [
 ];
 
 function Theaters() {
-  const [state, dispatch] = useContext(reducer);
+  const [state, dispatch] = useContext(queryReducer);
   const handleChange = useHandleChange(dispatch);
 
   // @TODO Abstract this?
-  const locationDisabled = state.fields.theaters.length > 0;
+  const locationDisabled = state.theaters.length > 0;
 
   const ticketingChange = useCallback(({ value }) => dispatch({
     type: 'change',
@@ -25,8 +25,8 @@ function Theaters() {
   }), []);
 
   const ticketingValue = useMemo(() => (
-    ticketingOptions.find(({ value }) => value === state.fields.ticketing)
-  ), [state.fields.ticketing]);
+    ticketingOptions.find(({ value }) => value === state.ticketing)
+  ), [state.ticketing]);
 
   return (
     <>
@@ -38,7 +38,7 @@ function Theaters() {
           id="limit"
           name="limit"
           min="0"
-          value={state.fields.limit}
+          value={state.limit}
           onChange={handleChange}
           disabled={locationDisabled}
         />

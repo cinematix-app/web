@@ -2,13 +2,13 @@ import {
   useCallback,
   useContext,
 } from 'react';
-import reducer from '../context/reducer';
+import queryReducer from '../context/query-reducer';
 import Filters from './filters/filters';
 import SearchSelect from './select/search';
 import useHandleChange from '../hooks/handle-change';
 
 function Form() {
-  const [state, dispatch] = useContext(reducer);
+  const [state, dispatch] = useContext(queryReducer);
   const handleChange = useHandleChange(dispatch);
 
   const submitCallback = useCallback(e => e.preventDefault(), []);
@@ -24,9 +24,9 @@ function Form() {
             id="zipCode"
             name="zipCode"
             pattern="[0-9]{5}"
-            value={state.fields.zipCode}
+            value={state.zipCode}
             onChange={handleChange}
-            disabled={state.fields.theaters.length > 0}
+            disabled={state.theaters.length > 0}
           />
         </div>
         <label className="col-2 col-lg-1 col-form-label text-nowrap" htmlFor="theaters">Theaters</label>
