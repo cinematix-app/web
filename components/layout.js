@@ -18,7 +18,9 @@ function Layout({ children }) {
         <div className="container">
           <div className="row">
             <div className="col">
-              <img src="/static/logo.svg" alt="Cinematix" />
+              <a href="/">
+                <img src="/static/logo.svg" alt="Cinematix" />
+              </a>
             </div>
           </div>
         </div>

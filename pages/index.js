@@ -15,52 +15,47 @@ import Showtimes from '../components/showtimes';
 import Form from '../components/form';
 import dateFormat from '../utils/date-format';
 import createQueryReactor from '../reactors/query';
+import getFormattedDateTime from '../utils/formatted-datetime';
 
 const initialState = {
   fields: {
     zipCode: '',
     limit: '5',
-    ticketing: 'both',
+    ticketing: 'any',
     startDate: 'today',
     startTime: '',
     endDate: 'today',
     endTime: '',
-    theater: 'include',
     theaters: [],
+    theatersx: [],
+    amenities: [],
+    amenitiesx: [],
     movie: 'include',
     movies: [],
+    rating: 'include',
+    ratings: [],
+    genres: [],
+    genresx: [],
+    format: 'include',
+    formats: [],
     props: [],
     propsx: [],
   },
   today: null,
   showtimes: [],
   theaters: [],
+  amenities: [],
   movies: [],
+  genres: [],
+  ratings: [],
+  formats: [],
   props: [],
-  search: {
-    theaters: {
-      fetching: false,
-      result: [],
-    },
-    movies: {
-      fetching: false,
-      result: [],
-    },
-  },
   searchParsed: false,
   status: 'waiting',
   error: null,
 };
 
 const queryReactor = createQueryReactor(initialState);
-
-function toArray(value) {
-  if (typeof value === 'undefined') {
-    return [];
-  }
-
-  return Array.isArray(value) ? value : [value];
-}
 
 /**
  * Take an existing list and a new list and merge them updating
@@ -98,52 +93,22 @@ function getDateTime(date) {
   }
 }
 
-/**
- * Get datetime string
- *
- * @param {string} date
- * @return {string}
- */
-function getFormattedDateTime(today, date) {
-  switch (date) {
-    case 'today':
-      return today;
-    case 'tomorrow':
-      return today
-        ? DateTime.fromFormat(today, dateFormat).plus({ days: 1 }).toFormat(dateFormat)
-        : null;
-    default:
-      return date;
-  }
-}
-
 function resultReducer(state, action) {
   if (action.type !== 'result') {
     return state;
   }
 
-  const theaters = mergeList(state.theaters, action.theaters || []);
-  const movies = mergeList(state.movies, action.movies || []);
-  const props = mergeList(state.props, action.props || []);
-
   return {
     ...state,
     status: 'ready',
-    showtimes: (action.showtimes || []).map(showtime => (
-      {
-        ...showtime,
-        props: [
-          ...toArray(showtime.location.amenityFeature),
-          ...toArray(showtime.additionalProperty),
-          ...toArray(showtime.workPresented.genre),
-          ...toArray(showtime.videoFormat),
-          ...toArray(showtime.workPresented.contentRating),
-        ],
-      }
-    )),
-    theaters,
-    movies,
-    props,
+    showtimes: action.showtimes,
+    theaters: mergeList(state.theaters, action.theaters || []),
+    amenities: mergeList(state.amenities, action.amenities || []),
+    movies: mergeList(state.movies, action.movies || []),
+    genres: mergeList(state.genres, action.genres || []),
+    ratings: mergeList(state.ratings, action.ratings || []),
+    formats: mergeList(state.formats, action.formats || []),
+    props: mergeList(state.props, action.props || []),
   };
 }
 
@@ -195,42 +160,32 @@ function reducer(state, action) {
     case 'result':
       return resultReducer(state, action);
     case 'status':
+      if (state.status === action.status) {
+        return state;
+      }
+
       return {
         ...state,
         status: action.status,
       };
     case 'error':
+      if (state.status === 'error') {
+        return state;
+      }
+
       return {
         ...state,
         status: 'error',
         error: action.error,
       };
     case 'today':
+      if (state.today === action.value) {
+        return state;
+      }
+
       return {
         ...state,
         today: action.value,
-      };
-    case 'searchFetch':
-      return {
-        ...state,
-        search: {
-          ...state.search,
-          [action.field]: {
-            ...state.search[action.field],
-            fetching: true,
-          },
-        },
-      };
-    case 'searchResult':
-      return {
-        ...state,
-        search: {
-          ...state.search,
-          [action.field]: {
-            fetching: false,
-            result: action.result || [],
-          },
-        },
       };
     case 'searchParsed':
       return {
@@ -246,18 +201,15 @@ function reducer(state, action) {
   }
 }
 
-const propKeys = ['props', 'propsx'];
-
 const locaitonFields = [
   'zipCode',
   'limit',
   'ticketing',
+  'theatersx',
 ];
 
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
-
-  const locationDisabled = state.fields.theater === 'include' && state.fields.theaters.length > 0;
 
   // Update the query
   // @TODO Pass this in with server rendering!
@@ -272,9 +224,6 @@ function Index() {
         let value;
         if (Array.isArray(initialState.fields[name])) {
           value = url.searchParams.getAll(name);
-          if (propKeys.includes(name)) {
-            value = value.map(v => v.replace('.', ':'));
-          }
         } else {
           value = url.searchParams.get(name);
         }
@@ -310,7 +259,6 @@ function Index() {
         zipCode,
         limit,
         ticketing,
-        theater,
         theaters,
         start,
         end,
@@ -320,14 +268,13 @@ function Index() {
         ticketing,
         startDate: start,
         endDate: end,
-        theaters: theater === 'include' ? theaters : [],
+        theaters,
       }))),
     ))
   ), dispatch, [
     state.fields.zipCode,
     state.fields.limit,
     state.fields.ticketing,
-    state.fields.theater,
     state.fields.theaters,
     startDate,
     endDate,
@@ -342,13 +289,13 @@ function Index() {
 
     const searchParams = new URLSearchParams();
     Object.keys(state.fields).forEach((name) => {
-      if (locationDisabled && locaitonFields.includes(name)) {
+      if (state.fields.theaters.length > 0 && locaitonFields.includes(name)) {
         searchParams.delete(name);
       } else if (state.fields[name] !== initialState.fields[name] && state.fields[name] !== '') {
         if (Array.isArray(state.fields[name])) {
           searchParams.delete(name);
           state.fields[name].forEach(v => (
-            searchParams.append(name, propKeys.includes(name) ? v.replace(':', '.') : v)
+            searchParams.append(name, v)
           ));
         } else {
           searchParams.set(name, state.fields[name]);
@@ -361,7 +308,6 @@ function Index() {
     const search = searchParams.toString();
     Router.replace(search ? `/?${search}` : '/');
   }, [
-    locationDisabled,
     state.fields.zipCode,
     state.fields.limit,
     state.fields.ticketing,
@@ -369,10 +315,18 @@ function Index() {
     state.fields.startTime,
     state.fields.endDate,
     state.fields.endTime,
-    state.fields.theater,
     state.fields.theaters,
+    state.fields.theatersx,
+    state.fields.amenities,
+    state.fields.amenitiesx,
     state.fields.movie,
     state.fields.movies,
+    state.fields.genres,
+    state.fields.genresx,
+    state.fields.rating,
+    state.fields.ratings,
+    state.fields.format,
+    state.fields.formats,
     state.fields.props,
     state.fields.propsx,
   ]);
@@ -393,7 +347,7 @@ function Index() {
   return (
     <Layout>
       <ReducerContext.Provider value={[state, dispatch]}>
-        <Form locationDisabled={locationDisabled} startDate={startDate} />
+        <Form />
         <Status status={state.status} error={state.error}>
           <Showtimes />
         </Status>

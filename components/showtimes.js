@@ -1,25 +1,18 @@
 import {
   Fragment,
   useContext,
-  useCallback,
   useMemo,
 } from 'react';
 import { DateTime, Duration } from 'luxon';
 import reducer from '../context/reducer';
-import displayFilter from '../utils/display-filter';
-import displayFilterExclusive from '../utils/display-filter-exclusive';
 import getTodayDateTime from '../utils/today-datetime';
-import getPropValue from '../utils/prop-value';
-import getPropOptions from '../utils/prop-options';
+import useDisplayFilter from '../hooks/display-filter';
+import useDisplayFilterExclusive from '../hooks/display-filter-exclusive';
 
 const previews = 20;
 
 function Showtimes() {
   const [state] = useContext(reducer);
-
-  const options = useMemo(() => (
-    getPropValue(getPropOptions(state.props, state.fields.props), state.fields.props)
-  ), [state.props, state.fields.props]);
 
   const startTime = useMemo(() => (
     state.fields.startTime ? DateTime.fromISO(state.fields.startTime) : null
@@ -28,23 +21,13 @@ function Showtimes() {
     state.fields.endTime ? DateTime.fromISO(state.fields.endTime) : null
   ), [state.fields.endTime]);
 
-  const optionsFilter = useCallback(props => displayFilter(
-    state.fields.props,
-    state.fields.propsx,
-    props,
-  ), [state.fields.props, state.fields.propsx]);
-
-  const movieFilter = useCallback(workPresented => displayFilterExclusive(
-    state.fields.movies,
-    state.fields.movie,
-    workPresented,
-  ), [state.fields.movies, state.fields.movies]);
-
-  const theaterFilter = useCallback(location => displayFilterExclusive(
-    state.fields.theaters,
-    state.fields.theater,
-    location,
-  ), [state.fields.theater, state.fields.theaters]);
+  const movieFilter = useDisplayFilterExclusive(state.fields.movies, state.fields.movie);
+  const theaterFilter = useDisplayFilter(state.fields.theaters, state.fields.theatersx);
+  const genreFilter = useDisplayFilter(state.fields.genres, state.fields.genresx);
+  const amenityFilter = useDisplayFilter(state.fields.amenities, state.fields.amenitiesx);
+  const ratingFilter = useDisplayFilterExclusive(state.fields.ratings, state.fields.rating);
+  const formatFilter = useDisplayFilterExclusive(state.fields.formats, state.fields.format);
+  const propFilter = useDisplayFilter(state.fields.props, state.fields.propsx);
 
   // Calculate the last end time, regardless of the day the show starts on.
   const endOfDay = useMemo(() => {
@@ -94,7 +77,8 @@ function Showtimes() {
       location,
       offers,
       workPresented,
-      props,
+      additionalProperty,
+      videoFormat,
       startDate: showtimeStartDate,
     }) => {
       if (offers.availability === 'Discontinued') {
@@ -109,7 +93,23 @@ function Showtimes() {
         return false;
       }
 
-      if (!optionsFilter(props)) {
+      if (!genreFilter(workPresented.genre)) {
+        return false;
+      }
+
+      if (!amenityFilter(location.amenityFeature)) {
+        return false;
+      }
+
+      if (!ratingFilter(workPresented.contentRating)) {
+        return false;
+      }
+
+      if (!formatFilter(videoFormat)) {
+        return false;
+      }
+
+      if (!propFilter(additionalProperty)) {
         return false;
       }
 
@@ -165,9 +165,13 @@ function Showtimes() {
     ));
   }, [
     state.showtimes,
-    optionsFilter,
+    genreFilter,
+    amenityFilter,
+    ratingFilter,
+    formatFilter,
     movieFilter,
-    displayFilter,
+    propFilter,
+    theaterFilter,
     startTime,
     endTime,
     endOfDay,
@@ -186,46 +190,10 @@ function Showtimes() {
     state.today,
   ]);
 
-  const {
-    movie: movieWidth,
-    theater: theaterWidth,
-    showtime: showtimeWidth,
-    showtimeDetail: showtimeDeatailWidth,
-    limit: optionsLimit,
-  } = useMemo(() => {
-    let movie = hasFutureShowtimes ? 3 : 4;
-    let theater = 4;
-    const showtime = hasFutureShowtimes ? 5 : 4;
-    const allowed = hasFutureShowtimes ? 3 : 4;
-    const limit = options.length > allowed ? allowed : options.length;
-    switch (limit) {
-      case 2:
-        movie -= 1;
-        theater -= 1;
-        break;
-      case 3:
-        movie -= 1;
-        theater -= 2;
-        break;
-      case 4:
-        movie -= 2;
-        theater -= 2;
-        break;
-      default:
-        break;
-    }
-
-    return {
-      movie,
-      theater,
-      showtime,
-      showtimeDetail: hasFutureShowtimes ? 3 : 4,
-      limit,
-    };
-  }, [
-    options,
-    hasFutureShowtimes,
-  ]);
+  const movieWidth = hasFutureShowtimes ? 3 : 4;
+  const theaterWidth = 4;
+  const showtimeWidth = hasFutureShowtimes ? 5 : 4;
+  const showtimeDeatailWidth = hasFutureShowtimes ? 3 : 4;
 
   const rows = useMemo(() => {
     const today = getTodayDateTime(state.today);
@@ -247,27 +215,6 @@ function Showtimes() {
             {showtime.location.name}
           </a>
         );
-      }
-
-      let optionsDisplay;
-      if (optionsLimit > 1) {
-        optionsDisplay = options.slice(0, optionsLimit).map((option) => {
-          let checkMark;
-
-          if (showtime.props.find(obj => obj['@id'] === option.value)) {
-            checkMark = (
-              <div className="mb-2">
-                <img src="static/baseline-check_circle-24px.svg" alt={option.label} /><span className="d-lg-none"> {option.label}</span>
-              </div>
-            );
-          }
-
-          return (
-            <div key={option.value} className="col-lg-1 text-left text-lg-center">
-              {checkMark}
-            </div>
-          );
-        });
       }
 
       let className = [
@@ -313,7 +260,6 @@ function Showtimes() {
           <div className={`col-lg-${theaterWidth} mb-2`}>
             {theaterDisplay}
           </div>
-          {optionsDisplay}
           <div className={`col-lg-${showtimeWidth} mb-2`}>
             <div className="row align-items-center">
               {dateDisplay}
@@ -340,8 +286,6 @@ function Showtimes() {
   }, [
     state.today,
     showtimes,
-    options,
-    optionsLimit,
     movieWidth,
     theaterWidth,
     showtimeWidth,
@@ -368,15 +312,6 @@ function Showtimes() {
     return null;
   }
 
-  let optionsDisplay;
-  if (optionsLimit > 1) {
-    optionsDisplay = options.slice(0, optionsLimit).map(option => (
-      <div key={option.value} className="col-lg-1 mb-2 text-center text-break">
-        {option.label}
-      </div>
-    ));
-  }
-
   return (
     <Fragment>
       <div className="row border-bottom d-none mb-2 d-lg-flex align-items-end">
@@ -386,7 +321,6 @@ function Showtimes() {
         <h5 className={`col-lg-${theaterWidth} mb-0`}>
           Theater
         </h5>
-        {optionsDisplay}
         <div className={`col-lg-${showtimeWidth}`}>
           <div className="row align-items-end">
             {dateHeader}

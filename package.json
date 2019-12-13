@@ -6,7 +6,7 @@
     "build": "next build && next export",
     "deploy": "next build && next export && wrangler publish",
     "start": "next start",
-    "test": "eslint ."
+    "test": "eslint --ignore-path .gitignore ."
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
@@ -21,6 +21,7 @@
     "react": "^16.9.0",
     "react-dom": "^16.9.0",
     "react-select": "^3.0.4",
+    "reactstrap": "^8.1.1",
     "reinspect": "^1.0.1",
     "rxjs": "^6.5.2"
   },
