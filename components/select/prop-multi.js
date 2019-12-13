@@ -3,16 +3,18 @@ import Select from 'react-select';
 import reducer from '../../context/reducer';
 import useOptionsValues from '../../hooks/options-values';
 import useHandleListChange from '../../hooks/handle-list-change';
+import queryReducer from '../../context/query-reducer';
 
 function PropMultiSelect({ id }) {
-  const [state, dispatch] = useContext(reducer);
+  const [state] = useContext(reducer);
+  const [queryState, dispatch] = useContext(queryReducer);
 
-  const [options, values] = useOptionsValues(state[id], state.fields[id]);
+  const [options, values] = useOptionsValues(state[id], queryState[id]);
   const handleListChange = useHandleListChange(dispatch, id);
   const disabled = options.length === 0;
 
   const xid = `${id}x`;
-  const [optionsx, valuesx] = useOptionsValues(state[id], state.fields[xid]);
+  const [optionsx, valuesx] = useOptionsValues(state[id], queryState[xid]);
   const handleListChangex = useHandleListChange(dispatch, xid);
   const disabledx = optionsx.length === 0;
 

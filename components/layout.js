@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import '../styles/style.scss';
 
 function Layout({ children }) {
@@ -18,9 +19,11 @@ function Layout({ children }) {
         <div className="container">
           <div className="row">
             <div className="col">
-              <a href="/">
-                <img src="/static/logo.svg" alt="Cinematix" />
-              </a>
+              <Link href="/">
+                <a>
+                  <img src="/static/logo.svg" alt="Cinematix" />
+                </a>
+              </Link>
             </div>
           </div>
         </div>

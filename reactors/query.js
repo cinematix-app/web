@@ -14,7 +14,7 @@ import {
 import { ajax } from 'rxjs/ajax';
 import resultFilter from '../utils/result-filter';
 
-function createQueryReactor(initialState) {
+function createQueryReactor(defaultQuery) {
   return value$ => value$.pipe(
     filter(({ theaters, zipCode }) => theaters.length || zipCode.length === 5),
     distinctUntilChanged((z, y) => (
@@ -34,7 +34,7 @@ function createQueryReactor(initialState) {
         url.searchParams.set('zipCode', q.zipCode);
 
         ['limit', 'ticketing'].forEach((field) => {
-          if (q[field] !== initialState.fields[field]) {
+          if (q[field] !== defaultQuery[field]) {
             url.searchParams.set(field, q[field]);
           }
         });

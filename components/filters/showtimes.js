@@ -7,26 +7,28 @@ import getTodayDateTime from '../../utils/today-datetime';
 import getFormattedDateTime from '../../utils/formatted-datetime';
 import PropSelect from '../select/prop';
 import PropMultiSelect from '../select/prop-multi';
+import queryReducer from '../../context/query-reducer';
 
 const quickDates = ['today', 'tomorrow'];
 
 function Showtimes() {
-  const [state, dispatch] = useContext(reducer);
+  const [state] = useContext(reducer);
+  const [queryState, dispatch] = useContext(queryReducer);
   const handleChange = useHandleChange(dispatch);
 
   const startDate = useMemo(
-    () => getFormattedDateTime(state.today, state.fields.startDate),
-    [state.today, state.fields.startDate],
+    () => getFormattedDateTime(state.today, queryState.startDate),
+    [state.today, queryState.startDate],
   );
 
   const customStartDate = useMemo(
-    () => !quickDates.includes(state.fields.startDate),
-    [state.fields.startDate],
+    () => !quickDates.includes(queryState.startDate),
+    [queryState.startDate],
   );
 
   const customEndDate = useMemo(
-    () => !quickDates.includes(state.fields.endDate),
-    [state.fields.endDate],
+    () => !quickDates.includes(queryState.endDate),
+    [queryState.endDate],
   );
 
   const dayAfterTomorrowFormatted = useMemo(
@@ -80,8 +82,8 @@ function Showtimes() {
                   name="startDate"
                   value="today"
                   onClick={handleChange}
-                  aria-pressed={state.fields.startDate === 'today'}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.startDate === 'today' ? 'active' : ''].join(' ')}
+                  aria-pressed={queryState.startDate === 'today'}
+                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', queryState.startDate === 'today' ? 'active' : ''].join(' ')}
                 >
                     Today
                 </button>
@@ -90,8 +92,8 @@ function Showtimes() {
                   name="startDate"
                   value="tomorrow"
                   onClick={handleChange}
-                  aria-pressed={state.fields.startDate === 'tomorrow'}
-                  className={['btn', 'btn-outline-secondary', state.fields.startDate === 'tomorrow' ? 'active' : ''].join(' ')}
+                  aria-pressed={queryState.startDate === 'tomorrow'}
+                  className={['btn', 'btn-outline-secondary', queryState.startDate === 'tomorrow' ? 'active' : ''].join(' ')}
                 >
                     Tomorrow
                 </button>
@@ -113,7 +115,7 @@ function Showtimes() {
               id="startDate"
               name="startDate"
               min={state.today || ''}
-              value={customStartDate ? state.fields.startDate : ''}
+              value={customStartDate ? queryState.startDate : ''}
               disabled={!customStartDate}
               onChange={handleChange}
               placeholder="YYYY-MM-DD"
@@ -127,7 +129,7 @@ function Showtimes() {
               type="time"
               id="startTime"
               name="startTime"
-              value={state.fields.startTime}
+              value={queryState.startTime}
               placeholder="HH:MM"
               pattern="[0-9]{2}:[0-9]{2}"
               onChange={handleChange}
@@ -147,8 +149,8 @@ function Showtimes() {
                   value="today"
                   onClick={handleChange}
                   disabled={endDateTodayDisabled}
-                  aria-pressed={state.fields.endDate === 'today'}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields.endDate === 'today' ? 'active' : ''].join(' ')}
+                  aria-pressed={queryState.endDate === 'today'}
+                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', queryState.endDate === 'today' ? 'active' : ''].join(' ')}
                 >
                     Today
                 </button>
@@ -158,8 +160,8 @@ function Showtimes() {
                   value="tomorrow"
                   onClick={handleChange}
                   disabled={endDateTomorrowDisabled}
-                  aria-pressed={state.fields.endDate === 'tomorrow'}
-                  className={['btn', 'btn-outline-secondary', state.fields.endDate === 'tomorrow' ? 'active' : ''].join(' ')}
+                  aria-pressed={queryState.endDate === 'tomorrow'}
+                  className={['btn', 'btn-outline-secondary', queryState.endDate === 'tomorrow' ? 'active' : ''].join(' ')}
                 >
                     Tomorrow
                 </button>
@@ -182,7 +184,7 @@ function Showtimes() {
               name="endDate"
               min={startDate}
               max={maxEndFormatted}
-              value={customEndDate ? state.fields.endDate : ''}
+              value={customEndDate ? queryState.endDate : ''}
               disabled={!customEndDate}
               onChange={handleChange}
               placeholder="YYYY-MM-DD"
@@ -196,7 +198,7 @@ function Showtimes() {
               type="time"
               id="endTime"
               name="endTime"
-              value={state.fields.endTime}
+              value={queryState.endTime}
               placeholder="HH:MM"
               pattern="[0-9]{2}:[0-9]{2}"
               onChange={handleChange}
