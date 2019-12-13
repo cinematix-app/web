@@ -13,24 +13,22 @@
     "@cinematix/reactor": "^2.0.0",
     "@cloudflare/kv-asset-handler": "0.0.7",
     "@zeit/next-sass": "^1.0.1",
-    "bootstrap": "^4.3.1",
-    "jsonld": "^1.6.2",
-    "luxon": "^1.17.2",
-    "next": "^9.0.5",
-    "node-sass": "^4.12.0",
-    "react": "^16.9.0",
-    "react-dom": "^16.9.0",
-    "react-select": "^3.0.4",
-    "reactstrap": "^8.1.1",
-    "reinspect": "^1.0.1",
-    "rxjs": "^6.5.2"
+    "bootstrap": "^4.4.1",
+    "jsonld": "^1.8.1",
+    "luxon": "^1.21.3",
+    "next": "^9.1.5",
+    "node-sass": "^4.13.0",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "react-select": "^3.0.8",
+    "rxjs": "^6.5.3"
   },
   "devDependencies": {
     "eslint": "^5.16.0",
     "eslint-config-airbnb": "^17.1.1",
-    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-import": "^2.19.1",
     "eslint-plugin-jsx-a11y": "^6.2.3",
-    "eslint-plugin-react": "^7.14.3",
+    "eslint-plugin-react": "^7.17.0",
     "eslint-plugin-react-hooks": "^1.7.0"
   }
 }
