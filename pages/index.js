@@ -197,13 +197,6 @@ function reducer(state, action) {
         },
         searchParsed: true,
       };
-    case 'reset':
-      return {
-        ...state,
-        fields: {
-          ...initialState.fields,
-        },
-      };
     default:
       throw new Error();
   }
@@ -218,15 +211,6 @@ const locaitonFields = [
 
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
-
-  const onLogoClick = useCallback((e) => {
-    if (e.metaKey || e.ctrlKey) {
-      return;
-    }
-
-    e.preventDefault();
-    dispatch({ type: 'reset' });
-  });
 
   // Update the query
   // @TODO Pass this in with server rendering!
@@ -362,7 +346,7 @@ function Index() {
   }, []);
 
   return (
-    <Layout onLogoClick={onLogoClick}>
+    <Layout>
       <ReducerContext.Provider value={[state, dispatch]}>
         <Form />
         <Status status={state.status} error={state.error}>
