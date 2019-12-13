@@ -38,6 +38,7 @@ function SearchSelect({
   property,
   exclude,
   disabled,
+  className,
 }) {
   const [state, dispatch] = useContext(reducer);
   const [searchState, searchDispatch] = useReducer(searchReducer, initialState);
@@ -73,7 +74,7 @@ function SearchSelect({
       inputId={id}
       name={id}
       options={options}
-      className="select-container rounded"
+      className={className || 'select-container rounded'}
       classNamePrefix="select"
       value={values}
       onChange={handleListChange}

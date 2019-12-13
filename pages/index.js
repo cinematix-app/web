@@ -2,6 +2,7 @@ import {
   useReducer,
   useEffect,
   useMemo,
+  useCallback,
 } from 'react';
 import Router from 'next/router';
 import { of, timer } from 'rxjs';
@@ -32,6 +33,12 @@ const initialState = {
     amenitiesx: [],
     movie: 'include',
     movies: [],
+    rating: 'include',
+    ratings: [],
+    genres: [],
+    genresx: [],
+    format: 'include',
+    formats: [],
     props: [],
     propsx: [],
   },
@@ -40,6 +47,9 @@ const initialState = {
   theaters: [],
   amenities: [],
   movies: [],
+  genres: [],
+  ratings: [],
+  formats: [],
   props: [],
   searchParsed: false,
   status: 'waiting',
@@ -47,14 +57,6 @@ const initialState = {
 };
 
 const queryReactor = createQueryReactor(initialState);
-
-function toArray(value) {
-  if (typeof value === 'undefined') {
-    return [];
-  }
-
-  return Array.isArray(value) ? value : [value];
-}
 
 /**
  * Take an existing list and a new list and merge them updating
@@ -97,31 +99,17 @@ function resultReducer(state, action) {
     return state;
   }
 
-  const theaters = mergeList(state.theaters, action.theaters || []);
-  const amenities = mergeList(state.amenities, action.amenities || []);
-  const movies = mergeList(state.movies, action.movies || []);
-  const props = mergeList(state.props, action.props || []);
-
   return {
     ...state,
     status: 'ready',
-    showtimes: (action.showtimes || []).map(showtime => (
-      {
-        ...showtime,
-        // @TODO This shouldn't be necessary now?
-        props: [
-          ...toArray(showtime.location.amenityFeature),
-          ...toArray(showtime.additionalProperty),
-          ...toArray(showtime.workPresented.genre),
-          ...toArray(showtime.videoFormat),
-          ...toArray(showtime.workPresented.contentRating),
-        ],
-      }
-    )),
-    theaters,
-    amenities,
-    movies,
-    props,
+    showtimes: action.showtimes,
+    theaters: mergeList(state.theaters, action.theaters || []),
+    amenities: mergeList(state.amenities, action.amenities || []),
+    movies: mergeList(state.movies, action.movies || []),
+    genres: mergeList(state.genres, action.genres || []),
+    ratings: mergeList(state.ratings, action.ratings || []),
+    formats: mergeList(state.formats, action.formats || []),
+    props: mergeList(state.props, action.props || []),
   };
 }
 
@@ -209,12 +197,17 @@ function reducer(state, action) {
         },
         searchParsed: true,
       };
+    case 'reset':
+      return {
+        ...state,
+        fields: {
+          ...initialState.fields,
+        },
+      };
     default:
       throw new Error();
   }
 }
-
-const propKeys = ['props', 'propsx'];
 
 const locaitonFields = [
   'zipCode',
@@ -225,6 +218,15 @@ const locaitonFields = [
 
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  const onLogoClick = useCallback((e) => {
+    if (e.metaKey || e.ctrlKey) {
+      return;
+    }
+
+    e.preventDefault();
+    dispatch({ type: 'reset' });
+  });
 
   // Update the query
   // @TODO Pass this in with server rendering!
@@ -239,9 +241,6 @@ function Index() {
         let value;
         if (Array.isArray(initialState.fields[name])) {
           value = url.searchParams.getAll(name);
-          if (propKeys.includes(name)) {
-            value = value.map(v => v.replace('.', ':'));
-          }
         } else {
           value = url.searchParams.get(name);
         }
@@ -313,7 +312,7 @@ function Index() {
         if (Array.isArray(state.fields[name])) {
           searchParams.delete(name);
           state.fields[name].forEach(v => (
-            searchParams.append(name, propKeys.includes(name) ? v.replace(':', '.') : v)
+            searchParams.append(name, v)
           ));
         } else {
           searchParams.set(name, state.fields[name]);
@@ -339,6 +338,12 @@ function Index() {
     state.fields.amenitiesx,
     state.fields.movie,
     state.fields.movies,
+    state.fields.genres,
+    state.fields.genresx,
+    state.fields.rating,
+    state.fields.ratings,
+    state.fields.format,
+    state.fields.formats,
     state.fields.props,
     state.fields.propsx,
   ]);
@@ -357,7 +362,7 @@ function Index() {
   }, []);
 
   return (
-    <Layout>
+    <Layout onLogoClick={onLogoClick}>
       <ReducerContext.Provider value={[state, dispatch]}>
         <Form />
         <Status status={state.status} error={state.error}>

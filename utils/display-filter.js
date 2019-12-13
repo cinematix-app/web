@@ -6,10 +6,10 @@ function displayFilter(include, exclude, data) {
 
     const match = include.find((id) => {
       if (Array.isArray(data)) {
-        return data.find(a => a['@id'] === id);
+        return data.find(a => a['@id'].split(':').pop() === id);
       }
 
-      return data['@id'];
+      return data['@id'].split(':').pop() === id;
     });
 
     if (!match) {
@@ -24,10 +24,10 @@ function displayFilter(include, exclude, data) {
 
     const match = exclude.find((id) => {
       if (Array.isArray(data)) {
-        return data.find(a => a['@id'] === id);
+        return data.find(a => a['@id'].split(':').pop() === id);
       }
 
-      return data['@id'] === id;
+      return data['@id'].split(':').pop() === id;
     });
 
     if (match) {

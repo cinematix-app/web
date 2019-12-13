@@ -61,14 +61,20 @@ function createQueryReactor(initialState) {
               resultFilter(data, 'MovieTheater'),
               resultFilter(data, 'x:Amenity'),
               resultFilter(data, 'Movie'),
-              resultFilter(data, ['x:Genre', 'x:Rating', 'x:Amenity', 'x:Format', 'x:Property']),
+              resultFilter(data, 'x:Genre'),
+              resultFilter(data, 'x:Rating'),
+              resultFilter(data, 'x:Format'),
+              resultFilter(data, ['x:Property']),
             ]).pipe(
-              map(([showtimes, theaters, amenities, movies, props]) => ({
+              map(([showtimes, theaters, amenities, movies, genres, ratings, formats, props]) => ({
                 type: 'result',
                 showtimes,
                 theaters,
                 amenities,
                 movies,
+                genres,
+                ratings,
+                formats,
                 props,
               })),
             )

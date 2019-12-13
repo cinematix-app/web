@@ -3,48 +3,51 @@ import Select from 'react-select';
 import reducer from '../../context/reducer';
 import useOptionsValues from '../../hooks/options-values';
 import useHandleListChange from '../../hooks/handle-list-change';
+import useHandleChange from '../../hooks/handle-change';
 
-function PropSelect({ id }) {
+function PropSelect({ id, button }) {
   const [state, dispatch] = useContext(reducer);
-
-  const disabled = state[id].length === 0;
   const [options, values] = useOptionsValues(state[id], state.fields[id]);
   const handleListChange = useHandleListChange(dispatch, id);
+  const disabled = options.length === 0;
 
-  const xid = `${id}x`;
-  const [optionsx, valuesx] = useOptionsValues(state[id], state.fields[xid]);
-  const handleListChangex = useHandleListChange(dispatch, xid);
+  const handleChange = useHandleChange(dispatch);
 
   return (
     <div className="row">
-      <div className="col-md col-12 mb-2 mb-md-0 pr-md-0 input-group align-items-stretch flex-md-nowrap">
+      <div className="input-group col-md col-12 flex-md-nowrap">
         <div className="input-group-prepend w-100 w-md-auto">
-          <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-right-0 rounded-md-left" htmlFor={id}>Include</label>
+          <div className="btn-group w-100 w-md-auto" role="group">
+            <button
+              type="button"
+              name={button}
+              value="include"
+              onClick={handleChange}
+              aria-pressed={state.fields[button] === 'include'}
+              className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.fields[button] === 'include' ? 'active' : ''].join(' ')}
+            >
+                  Include
+            </button>
+            <button
+              type="button"
+              name={button}
+              value="exclude"
+              onClick={handleChange}
+              aria-pressed={state.fields[button] === 'exclude'}
+              className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', state.fields[button] === 'exclude' ? 'active' : ''].join(' ')}
+            >
+                  Exclude
+            </button>
+          </div>
         </div>
         <Select
           inputId={id}
           name={id}
           options={options}
-          className={['select-container', 'rounded-0', 'align-self-stretch'].join(' ')}
+          className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
           classNamePrefix="select"
           value={values}
           onChange={handleListChange}
-          isDisabled={disabled}
-          isMulti
-        />
-      </div>
-      <div className="col-md col-12 mb-2 mb-md-0 pl-md-0 input-group align-items-stretch flex-md-nowrap">
-        <div className="input-group-prepend w-100 w-md-auto">
-          <label className="input-group-text w-100 w-md-auto rounded-bottom-0 rounded-top rounded-md-right-0 rounded-md-left-0" htmlFor={xid}>Exclude</label>
-        </div>
-        <Select
-          inputId={xid}
-          name={xid}
-          options={optionsx}
-          className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
-          classNamePrefix="select"
-          value={valuesx}
-          onChange={handleListChangex}
           isDisabled={disabled}
           isMulti
         />

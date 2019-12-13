@@ -3,7 +3,7 @@ import Select from 'react-select';
 import reducer from '../../context/reducer';
 import useHandleChange from '../../hooks/handle-change';
 import SearchSelect from '../select/search';
-import PropSelect from '../select/prop';
+import PropMultiSelect from '../select/prop-multi';
 
 const ticketingOptions = [
   { value: 'any', label: 'Any' },
@@ -45,30 +45,24 @@ function Theaters() {
       </div>
       <div className="form-group">
         <label htmlFor="ticketing">Ticketing</label>
-        <div>
-          <Select
-            inputId="ticketing"
-            name="ticketing"
-            options={ticketingOptions}
-            className="select-container"
-            classNamePrefix="select"
-            value={ticketingValue}
-            onChange={ticketingChange}
-            isDisabled={locationDisabled}
-          />
-        </div>
+        <Select
+          inputId="ticketing"
+          name="ticketing"
+          options={ticketingOptions}
+          className="select-container"
+          classNamePrefix="select"
+          value={ticketingValue}
+          onChange={ticketingChange}
+          isDisabled={locationDisabled}
+        />
       </div>
       <div className="form-group">
         <label htmlFor="theatersx">Exclude</label>
-        <div>
-          <SearchSelect id="theaters" exclude property="P6644" disabled={locationDisabled} />
-        </div>
+        <SearchSelect id="theaters" exclude property="P6644" disabled={locationDisabled} />
       </div>
       <div className="form-group">
         <label>Amenities</label>
-        <div>
-          <PropSelect id="amenities" />
-        </div>
+        <PropMultiSelect id="amenities" />
       </div>
     </>
   );

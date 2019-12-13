@@ -5,6 +5,8 @@ import useHandleChange from '../../hooks/handle-change';
 import dateFormat from '../../utils/date-format';
 import getTodayDateTime from '../../utils/today-datetime';
 import getFormattedDateTime from '../../utils/formatted-datetime';
+import PropSelect from '../select/prop';
+import PropMultiSelect from '../select/prop-multi';
 
 const quickDates = ['today', 'tomorrow'];
 
@@ -201,6 +203,14 @@ function Showtimes() {
             />
           </div>
         </div>
+      </div>
+      <div className="form-group">
+        <label>Formats</label>
+        <PropSelect id="formats" button="format" />
+      </div>
+      <div className="form-group">
+        <label>Properties</label>
+        <PropMultiSelect id="props" />
       </div>
     </>
   );

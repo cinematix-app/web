@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import Head from 'next/head';
 import '../styles/style.scss';
 
-function Layout({ children }) {
+function Layout({ onLogoClick, children }) {
   return (
     <Fragment>
       <Head>
@@ -18,7 +18,9 @@ function Layout({ children }) {
         <div className="container">
           <div className="row">
             <div className="col">
-              <img src="/static/logo.svg" alt="Cinematix" />
+              <a href="/" onClick={onLogoClick}>
+                <img src="/static/logo.svg" alt="Cinematix" />
+              </a>
             </div>
           </div>
         </div>
