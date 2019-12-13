@@ -23,7 +23,7 @@ function Showtimes() {
     queryState.endTime ? DateTime.fromISO(queryState.endTime) : null
   ), [queryState.endTime]);
 
-  const movieFilter = useDisplayFilterExclusive(queryState.movies,queryState.movie);
+  const movieFilter = useDisplayFilterExclusive(queryState.movies, queryState.movie);
   const theaterFilter = useDisplayFilter(queryState.theaters, queryState.theatersx);
   const genreFilter = useDisplayFilter(queryState.genres, queryState.genresx);
   const amenityFilter = useDisplayFilter(queryState.amenities, queryState.amenitiesx);
