@@ -2,7 +2,6 @@ import {
   useReducer,
   useEffect,
   useMemo,
-  useCallback,
 } from 'react';
 import Router from 'next/router';
 import { of, timer } from 'rxjs';
