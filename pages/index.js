@@ -102,7 +102,7 @@ function resultReducer(state, action) {
   return {
     ...state,
     status: 'ready',
-    showtimes: action.showtimes,
+    showtimes: action.showtimes || [],
     theaters: mergeList(state.theaters, action.theaters || []),
     amenities: mergeList(state.amenities, action.amenities || []),
     movies: mergeList(state.movies, action.movies || []),
@@ -255,7 +255,7 @@ function Index() {
       <QueryReducerContext.Provider value={[queryState, queryDispatch]}>
         <ReducerContext.Provider value={[state, dispatch]}>
           <Form />
-          <Status status={state.status} error={state.error}>
+          <Status isEmpty={state.showtimes.length === 0} status={state.status} error={state.error}>
             <Showtimes />
           </Status>
         </ReducerContext.Provider>

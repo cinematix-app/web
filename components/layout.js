@@ -28,9 +28,9 @@ function Layout({ children }) {
           </div>
         </div>
       </header>
-      <div className="container">
+      <main className="container d-flex flex-column flex-grow-1">
         {children}
-      </div>
+      </main>
     </Fragment>
   );
 }
