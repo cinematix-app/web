@@ -40,9 +40,9 @@ function Filters() {
     <div className="mb-3">
       <div className="mb-3">
         <div className="input-group btn-group" role="group">
-          <button className={['btn', 'btn-outline-secondary', state === 'theaters' ? 'active' : ''].join(' ')} type="button" name="filters" value="theaters" onClick={handleChange} aria-pressed={state === 'today'}>Theaters</button>
-          <button className={['btn', 'btn-outline-secondary', state === 'movies' ? 'active' : ''].join(' ')} type="button" name="filters" value="movies" onClick={handleChange}>Movies</button>
-          <button className={['btn', 'btn-outline-secondary', state === 'showtimes' ? 'active' : ''].join(' ')} type="button" name="filters" value="showtimes" onClick={handleChange}>Showtimes</button>
+          <button className="btn btn-outline-secondary" type="button" name="filters" value="theaters" onClick={handleChange} aria-pressed={state === 'theaters'}>Theaters</button>
+          <button className="btn btn-outline-secondary" type="button" name="filters" value="movies" onClick={handleChange} aria-pressed={state === 'movies'}>Movies</button>
+          <button className="btn btn-outline-secondary" type="button" name="filters" value="showtimes" onClick={handleChange} aria-pressed={state === 'showtimes'}>Showtimes</button>
         </div>
       </div>
       {group}

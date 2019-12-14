@@ -55,9 +55,22 @@ header {
 
 .form-control:disabled,
 .select__control--is-disabled,
+fieldset[disabled] label,
+fieldset[data-psuedo-disabled="true"] label,
+fieldset[data-psuedo-disabled="true"] .input-group-prepend,
+fieldset[data-psuedo-disabled="true"] .input-group-append,
 input[disabled] {
     background-color: $input-bg;
     opacity: 0.3;
+}
+
+fieldset[disabled],
+fieldset[data-psuedo-disabled="true"] {
+    border-color: scale-color($input-border-color, $alpha: -70%) !important;
+}
+
+button[aria-pressed="true"] {
+    @extend .active;
 }
 
 @each $breakpoint in map-keys($grid-breakpoints) {
@@ -146,7 +159,7 @@ input[disabled] {
     }
 }
 
-.input-group-prepend label {
+.input-group-text {
     color: $dropdown-link-hover-color;
 }
 

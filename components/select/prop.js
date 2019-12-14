@@ -26,7 +26,7 @@ function PropSelect({ id, button }) {
               value="include"
               onClick={handleChange}
               aria-pressed={queryState[button] === 'include'}
-              className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', queryState[button] === 'include' ? 'active' : ''].join(' ')}
+              className="btn btn-outline-secondary rounded-bottom-0 rounded-md-left"
             >
                   Include
             </button>
@@ -36,7 +36,7 @@ function PropSelect({ id, button }) {
               value="exclude"
               onClick={handleChange}
               aria-pressed={queryState[button] === 'exclude'}
-              className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', queryState[button] === 'exclude' ? 'active' : ''].join(' ')}
+              className="btn btn-outline-secondary rounded-bottom-0 rounded-md-right-0"
             >
                   Exclude
             </button>
@@ -46,7 +46,7 @@ function PropSelect({ id, button }) {
           inputId={id}
           name={id}
           options={options}
-          className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
+          className="select-container rounded-top-0 rounded-md-left-0 rounded-md-right align-self-stretch"
           classNamePrefix="select"
           value={values}
           onChange={handleListChange}

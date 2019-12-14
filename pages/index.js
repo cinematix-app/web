@@ -40,6 +40,9 @@ const defaultQuery = {
   formats: [],
   props: [],
   propsx: [],
+  price: '0',
+  minPrice: '',
+  maxPrice: '',
 };
 
 const initialState = {
