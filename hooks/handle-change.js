@@ -7,7 +7,9 @@ function useHandleChange(dispatch) {
       name: target.name,
       value: target.type === 'checkbox' ? target.checked : target.value,
     });
-  }, []);
+  }, [
+    dispatch,
+  ]);
 }
 
 export default useHandleChange;
