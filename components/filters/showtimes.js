@@ -253,7 +253,7 @@ function Showtimes() {
             </div>
           </div>
           <div className="col-auto">
-            <label className="mb-0" htmlFor="minPrice">Maximum</label>
+            <label className="mb-0" htmlFor="maxPrice">Maximum</label>
           </div>
           <div className="col">
             <div className="input-group">
