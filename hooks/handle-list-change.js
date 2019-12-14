@@ -7,7 +7,10 @@ function useHandleListChange(dispatch, list) {
       name: list,
       value: data ? data.map(({ value }) => value) : [],
     })
-  ));
+  ), [
+    dispatch,
+    list,
+  ]);
 }
 
 export default useHandleListChange;
