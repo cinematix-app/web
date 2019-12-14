@@ -9,14 +9,12 @@ import {
   distinctUntilChanged,
   catchError,
   map,
-  filter,
 } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 import resultFilter from '../utils/result-filter';
 
 function createQueryReactor(defaultQuery) {
   return value$ => value$.pipe(
-    filter(({ theaters, zipCode }) => theaters.length || zipCode.length === 5),
     distinctUntilChanged((z, y) => (
       z.zipCode === y.zipCode
       && z.limit === y.limit
@@ -26,6 +24,11 @@ function createQueryReactor(defaultQuery) {
       && z.theaters === y.theaters
     )),
     switchMap((q) => {
+      if (q.theaters.length === 0 && q.zipCode.length < 5) {
+        return of({
+          type: 'result',
+        });
+      }
       const url = new URL('https://cinematix.app/api/showtimes');
 
       if (q.theaters.length) {

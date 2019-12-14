@@ -22,7 +22,8 @@
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-select": "^3.0.8",
-    "rxjs": "^6.5.3"
+    "rxjs": "^6.5.3",
+    "spinkit": "^2.0.1"
   },
   "devDependencies": {
     "eslint": "^5.16.0",

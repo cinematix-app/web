@@ -26,6 +26,24 @@ $dropdown-link-active-color: color-yiq($primary);
 // Reboot
 @import "~bootstrap/scss/bootstrap";
 
+// Spinkit
+@import '~spinkit/spinkit';
+
+:root {
+    --sk-color: #FEF638;
+}
+
+html,
+body,
+#__next {
+    min-height: 100vh;
+}
+
+#__next {
+    @extend .d-flex;
+    @extend .flex-column;
+}
+
 header {
     background-color: $primary;
     img {
