@@ -55,6 +55,7 @@ const initialState = {
   ratings: [],
   formats: [],
   props: [],
+  prices: [],
   status: 'waiting',
   error: null,
 };
@@ -70,12 +71,30 @@ const queryReactor = createQueryReactor(defaultQuery);
  *
  * @return {array}
  */
-function mergeList(existingList, newList) {
+function mergeList(existingList = [], newList = []) {
   const list = new Map();
 
   existingList.forEach(item => list.set(item['@id'], item));
   newList.forEach(item => list.set(item['@id'], item));
 
+
+  return [...list.values()];
+}
+
+/**
+ * Take an existing action list and a new list and merge them updating
+ * the existing items and adding new items, but not discarding anything.
+ *
+ * @param {array} existingList
+ * @param {array} newList
+ *
+ * @return {array}
+ */
+function mergeActionList(existingList = [], newList = []) {
+  const list = new Map();
+
+  existingList.forEach(item => list.set(item.object['@id'], item));
+  newList.forEach(item => list.set(item.object['@id'], item));
 
   return [...list.values()];
 }
@@ -106,13 +125,13 @@ function resultReducer(state, action) {
     ...state,
     status: 'ready',
     showtimes: action.showtimes || [],
-    theaters: mergeList(state.theaters, action.theaters || []),
-    amenities: mergeList(state.amenities, action.amenities || []),
-    movies: mergeList(state.movies, action.movies || []),
-    genres: mergeList(state.genres, action.genres || []),
-    ratings: mergeList(state.ratings, action.ratings || []),
-    formats: mergeList(state.formats, action.formats || []),
-    props: mergeList(state.props, action.props || []),
+    theaters: mergeList(state.theaters, action.theaters),
+    amenities: mergeList(state.amenities, action.amenities),
+    movies: mergeList(state.movies, action.movies),
+    genres: mergeList(state.genres, action.genres),
+    ratings: mergeList(state.ratings, action.ratings),
+    formats: mergeList(state.formats, action.formats),
+    props: mergeList(state.props, action.props),
   };
 }
 
@@ -147,6 +166,11 @@ function reducer(state, action) {
       return {
         ...state,
         today: action.value,
+      };
+    case 'prices':
+      return {
+        ...state,
+        prices: mergeActionList(state.prices, action.prices),
       };
     default:
       throw new Error();

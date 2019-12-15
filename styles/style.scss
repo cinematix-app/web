@@ -73,6 +73,16 @@ button[aria-pressed="true"] {
     @extend .active;
 }
 
+// Set the price spinner to be the same height as the line height.
+a .sk-wave {
+    width: 1.5em;
+    height: 1.5em;
+}
+
+a:hover .sk-wave-rect {
+    background-color: $dropdown-link-hover-color;
+}
+
 @each $breakpoint in map-keys($grid-breakpoints) {
     @include media-breakpoint-up($breakpoint) {
         $infix: breakpoint-infix($breakpoint, $grid-breakpoints);
