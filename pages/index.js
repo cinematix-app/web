@@ -173,7 +173,7 @@ function reducer(state, action) {
         prices: mergeActionList(state.prices, action.prices),
       };
     default:
-      throw new Error();
+      throw new Error(`Invalid Action: ${action.type}`);
   }
 }
 

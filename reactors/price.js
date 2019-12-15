@@ -74,19 +74,15 @@ function priceReactor(value$) {
                   ],
                 };
               }),
-              catchError(error => of({
-                action: 'prices',
-                prices: [
-                  {
-                    '@type': 'DownloadAction',
-                    acitonStatus: 'FailedActionStatus',
-                    object: {
-                      '@id': id,
-                    },
-                    error,
-                  },
-                ],
-              })),
+              catchError(({ response }) => {
+                // Remove context.
+                const { '@context': context, ...result } = response;
+
+                return of({
+                  type: 'prices',
+                  prices: [result],
+                });
+              }),
             );
           }),
         ),
