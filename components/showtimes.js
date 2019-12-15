@@ -224,8 +224,6 @@ function Showtimes() {
   const showtimeDeatailWidth = hasFutureShowtimes ? 3 : 4;
 
   const rows = useMemo(() => {
-    const today = getTodayDateTime(state.today);
-
     return showtimes.map((showtime) => {
       const price = queryState.price !== '1' ? undefined : state.prices.find(action => action.object['@id'] === showtime.offers['@id']);
 
@@ -234,7 +232,7 @@ function Showtimes() {
           key={showtime['@id']}
           showtime={showtime}
           price={price}
-          today={today}
+          today={state.today}
           width={showtimeWidth}
           theaterWidth={theaterWidth}
           movieWidth={movieWidth}

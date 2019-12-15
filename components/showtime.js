@@ -1,6 +1,7 @@
 import { DateTime, Duration } from 'luxon';
 import { previews } from '../utils/config';
 import Spinner from './spinner';
+import getTodayDateTime from '../utils/today-datetime';
 
 function Showtime({
   showtime,
@@ -56,10 +57,11 @@ function Showtime({
 
   let dateDisplay;
   if (hasFutureShowtimes) {
+    const todayDateTime = getTodayDateTime(today);
     dateDisplay = (
       <div className={`col-sm-${detailWidth} col-4 mb-2`}>
         <time dateTime={showtime.startDate}>
-          {!today || !showStart.startOf('day').equals(today) ? showStart.toLocaleString(DateTime.DATE_SHORT) : null}
+          {!todayDateTime || !showStart.startOf('day').equals(todayDateTime) ? showStart.toLocaleString(DateTime.DATE_SHORT) : null}
         </time>
       </div>
     );
