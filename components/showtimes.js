@@ -223,8 +223,8 @@ function Showtimes() {
   const showtimeWidth = hasFutureShowtimes ? 5 : 4;
   const showtimeDeatailWidth = hasFutureShowtimes ? 3 : 4;
 
-  const rows = useMemo(() => {
-    return showtimes.map((showtime) => {
+  const rows = useMemo(() => (
+    showtimes.map((showtime) => {
       const price = queryState.price !== '1' ? undefined : state.prices.find(action => action.object['@id'] === showtime.offers['@id']);
 
       return (
@@ -240,8 +240,8 @@ function Showtimes() {
           hasFutureShowtimes={hasFutureShowtimes}
         />
       );
-    });
-  }, [
+    })
+  ), [
     state.today,
     showtimes,
     queryState.price,
