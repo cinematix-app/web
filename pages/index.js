@@ -234,7 +234,7 @@ function queryReducer(state, action) {
 const wb = new Workbox('/service-worker.js');
 const queryReactor = createQueryReactor(defaultQuery, wb);
 
-function Index(props) {
+function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [queryState, queryDispatch] = useQueryReducer(queryReducer, defaultQuery);
 
