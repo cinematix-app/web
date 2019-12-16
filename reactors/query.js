@@ -1,8 +1,9 @@
 import {
   of,
-  merge,
+  concat,
   forkJoin,
   EMPTY,
+  defer,
 } from 'rxjs';
 import {
   switchMap,
@@ -10,8 +11,9 @@ import {
   distinctUntilChanged,
   catchError,
   map,
+  filter,
 } from 'rxjs/operators';
-import { ajax } from 'rxjs/ajax';
+import { fromFetch } from 'rxjs/fetch';
 import resultFilter from '../utils/result-filter';
 
 function createQueryReactor(defaultQuery, wb) {
@@ -64,13 +66,18 @@ function createQueryReactor(defaultQuery, wb) {
       url.searchParams.set('startDate', q.startDate);
       url.searchParams.set('endDate', q.endDate);
 
-      return merge(
+      return concat(
         updateRequested,
         of({
           type: 'status',
           status: 'fetching',
         }),
-        ajax.getJSON(url.toString()).pipe(
+        concat(
+          defer(() => caches.match(url.toString())),
+          fromFetch(url.toString()),
+        ).pipe(
+          filter(r => !!r),
+          flatMap(r => r.json()),
           flatMap(data => (
             forkJoin([
               resultFilter(data, 'ScreeningEvent'),
