@@ -1,15 +1,17 @@
 import {
   of,
   from,
-  merge,
   EMPTY,
+  concat,
+  defer,
 } from 'rxjs';
 import {
   flatMap,
   map,
   catchError,
+  filter,
 } from 'rxjs/operators';
-import { ajax } from 'rxjs/ajax';
+import { fromFetch } from 'rxjs/fetch';
 
 const concurrency = 10;
 
@@ -51,7 +53,7 @@ function priceReactor(value$) {
         },
       }));
 
-      return merge(
+      return concat(
         of({
           type: 'prices',
           prices: actions,
@@ -60,7 +62,12 @@ function priceReactor(value$) {
           flatMap((id) => {
             const url = new URL(`https://cinematix.app/api/offer/${id.split(':').pop()}/price`);
 
-            return ajax.getJSON(url.toString()).pipe(
+            return concat(
+              defer(() => caches.match(url.toString())),
+              fromFetch(url.toString()),
+            ).pipe(
+              filter(r => !!r),
+              flatMap(r => r.json()),
               map((data) => {
                 // Remove context.
                 const { '@context': context, ...result } = data;
