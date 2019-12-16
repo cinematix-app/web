@@ -35,9 +35,10 @@ function createQueryReactor(defaultQuery, wb) {
       // reload the page instead. Prevent an infinite loop by updating the state.
       let updateRequested = EMPTY;
       if (q.needsUpdate) {
-        updateRequested = wb.messageSW({ type: 'SKIP_WAITING' }).then(() => ({
+        wb.messageSW({ type: 'SKIP_WAITING' });
+        updateRequested = of({
           type: 'updateRequested',
-        }));
+        });
       }
 
       const url = new URL('https://cinematix.app/api/showtimes');
