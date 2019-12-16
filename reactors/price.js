@@ -11,6 +11,8 @@ import {
 } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax';
 
+const concurrency = 10;
+
 function priceReactor(value$) {
   return value$.pipe(
     flatMap(({ showtimes, prices }) => {
@@ -84,7 +86,7 @@ function priceReactor(value$) {
                 });
               }),
             );
-          }),
+          }, undefined, concurrency),
         ),
       );
     }),

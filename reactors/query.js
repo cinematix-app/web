@@ -2,6 +2,7 @@ import {
   of,
   merge,
   forkJoin,
+  EMPTY,
 } from 'rxjs';
 import {
   switchMap,
@@ -13,7 +14,7 @@ import {
 import { ajax } from 'rxjs/ajax';
 import resultFilter from '../utils/result-filter';
 
-function createQueryReactor(defaultQuery) {
+function createQueryReactor(defaultQuery, wb) {
   return value$ => value$.pipe(
     distinctUntilChanged((z, y) => (
       z.zipCode === y.zipCode
@@ -29,6 +30,16 @@ function createQueryReactor(defaultQuery) {
           type: 'result',
         });
       }
+
+      // If we are about to make a network request, and the app needs to be updated,
+      // reload the page instead. Prevent an infinite loop by updating the state.
+      let updateRequested = EMPTY;
+      if (q.needsUpdate) {
+        updateRequested = wb.messageSW({ type: 'SKIP_WAITING' }).then(() => ({
+          type: 'updateRequested',
+        }));
+      }
+
       const url = new URL('https://cinematix.app/api/showtimes');
 
       if (q.theaters.length) {
@@ -53,6 +64,7 @@ function createQueryReactor(defaultQuery) {
       url.searchParams.set('endDate', q.endDate);
 
       return merge(
+        updateRequested,
         of({
           type: 'status',
           status: 'fetching',
