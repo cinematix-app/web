@@ -25,7 +25,16 @@ const concurrency = 6;
 function handleResponse() {
   return source$ => source$.pipe(
     filter(r => !!r),
-    flatMap(r => r.json()),
+    flatMap((response) => {
+      // Throw a network error on a bad HTTP response.
+      if (!response.ok) {
+        const error = new Error(response.statusText);
+        error.response = response;
+        throw error;
+      }
+
+      return response.json();
+    }),
     flatMap(data => (
       forkJoin([
         resultFilter(data, 'ScreeningEvent'),
@@ -50,12 +59,6 @@ function handleResponse() {
         })),
       )
     )),
-    // @TODO fetch/cache doesn't throw an error,
-    //       it sets response.ok to false. We should do the same.
-    catchError(error => of({
-      type: 'error',
-      error,
-    })),
     // Combine all the actions into a single response.
     reduce((acc, action) => ({
       ...acc,
@@ -78,6 +81,15 @@ function handleResponse() {
       formats: [],
       props: [],
     }),
+  );
+}
+
+function catchNetworkError() {
+  return source$ => source$.pipe(
+    catchError(error => of({
+      type: 'error',
+      error,
+    })),
   );
 }
 
@@ -151,6 +163,7 @@ function createQueryReactor(defaultQuery, wb) {
         from([...urls.values()]).pipe(
           flatMap(url => fromFetch(url), undefined, concurrency),
           handleResponse(),
+          catchNetworkError(),
         ),
       );
     }),
