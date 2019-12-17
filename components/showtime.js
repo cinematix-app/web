@@ -12,6 +12,7 @@ function Showtime({
   theaterWidth,
   detailWidth,
   hasFutureShowtimes,
+  showPrice,
 }) {
   let movieDisplay;
   if (showtime.workPresented) {
@@ -68,13 +69,17 @@ function Showtime({
   }
 
   let priceDisplay = '→';
-  if (price) {
-    if (price.acitonStatus === 'ActiveActionStatus') {
-      priceDisplay = (
-        <Spinner />
-      );
-    } else if (price.object && price.object.price) {
-      priceDisplay = `$${price.object.price}`;
+  if (showPrice) {
+    if (showtime.offers.price) {
+      priceDisplay = `$${showtime.offers.price.toFixed(2)}`;
+    } else if (price) {
+      if (price.acitonStatus === 'ActiveActionStatus') {
+        priceDisplay = (
+          <Spinner />
+        );
+      } else if (price.object && price.object.price) {
+        priceDisplay = `$${price.object.price.toFixed(2)}`;
+      }
     }
   }
 

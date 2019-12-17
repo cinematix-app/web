@@ -18,6 +18,7 @@ import dateFormat from '../utils/date-format';
 import createQueryReactor from '../reactors/query';
 import getFormattedDateTime from '../utils/formatted-datetime';
 import useQueryReducer from '../hooks/query-reducer';
+import mergeList from '../utils/merge-list';
 
 const defaultQuery = {
   zipCode: '',
@@ -61,25 +62,6 @@ const initialState = {
   error: null,
   needsUpdate: false,
 };
-
-/**
- * Take an existing list and a new list and merge them updating
- * the existing items and adding new items, but not discarding anything.
- *
- * @param {array} existingList
- * @param {array} newList
- *
- * @return {array}
- */
-function mergeList(existingList = [], newList = []) {
-  const list = new Map();
-
-  existingList.forEach(item => list.set(item['@id'], item));
-  newList.forEach(item => list.set(item['@id'], item));
-
-
-  return [...list.values()];
-}
 
 /**
  * Take an existing action list and a new list and merge them updating
@@ -132,6 +114,8 @@ function resultReducer(state, action) {
     ratings: mergeList(state.ratings, action.ratings),
     formats: mergeList(state.formats, action.formats),
     props: mergeList(state.props, action.props),
+    // Clear the prices.
+    prices: [],
   };
 }
 

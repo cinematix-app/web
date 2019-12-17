@@ -60,15 +60,6 @@ function Showtimes() {
     };
   }, [state.today, startDate]);
 
-  const maxEndFormatted = useMemo(() => {
-    if (!startDate) {
-      return null;
-    }
-    const start = DateTime.fromFormat(startDate, dateFormat).startOf('day');
-
-    return start.plus({ days: 5 }).toFormat(dateFormat);
-  }, [startDate]);
-
   return (
     <>
       <div className="form-group">
@@ -183,7 +174,6 @@ function Showtimes() {
               id="endDate"
               name="endDate"
               min={startDate}
-              max={maxEndFormatted}
               value={customEndDate ? queryState.endDate : ''}
               disabled={!customEndDate}
               onChange={handleChange}

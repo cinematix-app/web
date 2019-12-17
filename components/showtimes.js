@@ -2,6 +2,7 @@ import {
   Fragment,
   useContext,
   useMemo,
+  useCallback,
 } from 'react';
 import {
   of,
@@ -39,6 +40,59 @@ function Showtimes() {
   const ratingFilter = useDisplayFilterExclusive(queryState.ratings, queryState.rating);
   const formatFilter = useDisplayFilterExclusive(queryState.formats, queryState.format);
   const propFilter = useDisplayFilter(queryState.props, queryState.propsx);
+
+  const priceFilter = useCallback((offer) => {
+    // If the price filters are not enabled, do not remove any item.
+    if (queryState.price !== '1') {
+      return true;
+    }
+
+    if (offer.availability !== 'InStock') {
+      return false;
+    }
+
+    let price;
+    if (offer.price) {
+      ({ price } = offer);
+    } else {
+      const action = state.prices.find(({ object }) => object['@id'] === offer['@id']);
+
+      if (action) {
+        // If the item has been determined to be discontinued, remove it.
+        if (action.object.availability === 'Discontinued') {
+          return false;
+        }
+
+        ({ price } = action.object);
+      }
+    }
+
+    // The object has no price.
+    if (!price) {
+      return true;
+    }
+
+    if (queryState.minPrice !== '') {
+      const minPrice = parseInt(queryState.minPrice, 10);
+      if (price <= minPrice) {
+        return false;
+      }
+    }
+
+    if (queryState.maxPrice !== '') {
+      const maxPrice = parseInt(queryState.maxPrice, 10);
+      if (price >= maxPrice) {
+        return false;
+      }
+    }
+
+    return true;
+  }, [
+    queryState.price,
+    queryState.minPrice,
+    queryState.maxPrice,
+    state.prices,
+  ]);
 
   // Calculate the last end time, regardless of the day the show starts on.
   const endOfDay = useMemo(() => {
@@ -124,6 +178,10 @@ function Showtimes() {
         return false;
       }
 
+      if (!priceFilter(offers)) {
+        return false;
+      }
+
       if (startTime || endTime) {
         const showStart = DateTime.fromISO(showtimeStartDate);
 
@@ -183,6 +241,7 @@ function Showtimes() {
     movieFilter,
     propFilter,
     theaterFilter,
+    priceFilter,
     startTime,
     endTime,
     endOfDay,
@@ -190,8 +249,6 @@ function Showtimes() {
 
   useReactor(value$ => (
     priceReactor(value$.pipe(
-      // If price is disabled, stop.
-      filter(([price]) => price === '1'),
       // Convert to Objects
       flatMap(([price, times, prices]) => of({
         price,
@@ -238,6 +295,7 @@ function Showtimes() {
           movieWidth={movieWidth}
           detailWidth={showtimeDeatailWidth}
           hasFutureShowtimes={hasFutureShowtimes}
+          showPrice={queryState.price === '1'}
         />
       );
     })
