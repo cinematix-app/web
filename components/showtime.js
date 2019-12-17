@@ -60,7 +60,7 @@ function Showtime({
   if (hasFutureShowtimes) {
     const todayDateTime = getTodayDateTime(today);
     dateDisplay = (
-      <div className={`col-sm-${detailWidth} col-4 mb-2`}>
+      <div className={`col-sm-${detailWidth} col-4 mb-2 mb-sm-0`}>
         <time dateTime={showtime.startDate}>
           {!todayDateTime || !showStart.startOf('day').equals(todayDateTime) ? showStart.toLocaleString(DateTime.DATE_SHORT) : null}
         </time>
@@ -84,27 +84,27 @@ function Showtime({
   }
 
   return (
-    <div className="row align-items-center mb-2 mb-lg-0">
-      <div className={`col-lg-${movieWidth} mb-2`}>
+    <div className="row align-items-center mb-2">
+      <div className={`col-lg-${movieWidth} mb-2 mb-lg-0`}>
         {movieDisplay}
       </div>
-      <div className={`col-lg-${theaterWidth} mb-2`}>
+      <div className={`col-lg-${theaterWidth} mb-2 mb-lg-0`}>
         {theaterDisplay}
       </div>
-      <div className={`col-lg-${width} mb-2`}>
+      <div className={`col-lg-${width} mb-2 mb-lg-0`}>
         <div className="row align-items-center">
           {dateDisplay}
-          <div className={`col-sm-${detailWidth} col-4 mb-2`}>
+          <div className={`col-sm-${detailWidth} col-4 mb-2 mb-sm-0`}>
             <time dateTime={showtime.startDate}>
               {showStart.toLocaleString(DateTime.TIME_SIMPLE)}
             </time>
           </div>
-          <div className={`col-sm-${detailWidth} col-4 mb-2`}>
+          <div className={`col-sm-${detailWidth} col-4 mb-2 mb-sm-0`}>
             <time dateTime={showEnd ? showEnd.toISO() : undefined}>
               {showEnd ? showEnd.toLocaleString(DateTime.TIME_SIMPLE) : undefined}
             </time>
           </div>
-          <div className={`col-sm-${detailWidth} col-12`}>
+          <div className={`col-sm-${detailWidth} col-12 mb-sm-0`}>
             <a className={className.join(' ')} href={showtime.offers.url}>
               {priceDisplay}
             </a>
