@@ -3,7 +3,7 @@ import storage from 'kv-storage-polyfill';
 import useHandleChange from '../hooks/handle-change';
 
 const initialState = {
-  status: ''
+  status: '',
 };
 
 function reducer(state, action) {
