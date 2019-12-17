@@ -49,8 +49,8 @@ function Showtimes() {
       const action = state.prices.find(({ object }) => object['@id'] === offer['@id']);
 
       if (action) {
-        // If the item has been determined to be discontinued, remove it.
-        if (action.object.availability === 'Discontinued') {
+        // If the item has been determined to be discontinued or is sold out, remove it.
+        if (['Discontinued', 'SoldOut'].includes(action.object.availability)) {
           return false;
         }
 

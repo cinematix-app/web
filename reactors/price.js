@@ -38,6 +38,7 @@ function handleResponse() {
         ],
       };
     }),
+    // @TODO fetch/cache doesn't throw an error, it sets response.ok to false. We should do the same.
     catchError(({ response }) => {
       // Remove context.
       const { '@context': context, ...result } = response;
