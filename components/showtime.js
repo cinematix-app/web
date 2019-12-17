@@ -13,11 +13,20 @@ function Showtime({
   detailWidth,
   hasFutureShowtimes,
   showPrice,
+  standalone,
 }) {
+  let anchorProps = {};
+  if (standalone) {
+    anchorProps = {
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    };
+  }
+
   let movieDisplay;
   if (showtime.workPresented) {
     movieDisplay = (
-      <a href={showtime.workPresented.url}>
+      <a href={showtime.workPresented.url} {...anchorProps}>
         {showtime.workPresented.name}
       </a>
     );
@@ -26,7 +35,7 @@ function Showtime({
   let theaterDisplay;
   if (showtime.location) {
     theaterDisplay = (
-      <a href={showtime.location.url}>
+      <a href={showtime.location.url} {...anchorProps}>
         {showtime.location.name}
       </a>
     );
@@ -105,7 +114,7 @@ function Showtime({
             </time>
           </div>
           <div className={`col-sm-${detailWidth} col-12 mb-sm-0`}>
-            <a className={className.join(' ')} href={showtime.offers.url}>
+            <a className={className.join(' ')} href={showtime.offers.url} {...anchorProps}>
               {priceDisplay}
             </a>
           </div>

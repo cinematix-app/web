@@ -8,20 +8,28 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'storage':
+      if (action.payload === 'declined') {
+        return {
+          ...state,
+          status: action.payload,
+        };
+      }
+
+      return {
+        ...state,
+        status: state.status === 'promptReady' ? 'prompt' : 'ready',
+      };
     case 'change':
       return {
         ...state,
         [action.name]: action.value,
       };
-    case 'prompt':
-      if (state.status === 'ready') {
-        return {
-          ...state,
-          status: 'prompt',
-        };
-      }
-
-      return state;
+    case 'promptReady':
+      return {
+        ...state,
+        status: state.status === 'ready' ? 'prompt' : 'promptReady',
+      };
     default:
       throw new Error('Invalid Action');
   }
@@ -33,24 +41,21 @@ function InstallPrompt() {
   const promptRef = useRef(null);
 
   useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      promptRef.current = e;
+      dispatch({ type: 'promptReady' });
+    });
+
     storage.get('install').then((value) => {
       dispatch({
-        type: 'change',
-        name: 'status',
-        value: value || 'ready',
+        type: 'storage',
+        payload: value,
       });
     });
   }, []);
 
   useEffect(() => {
-    if (state.status === 'ready') {
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        promptRef.current = e;
-        dispatch({ type: 'prompt' });
-      });
-    }
-
     if (state.status === 'accept') {
       promptRef.current.prompt();
     }
@@ -69,30 +74,34 @@ function InstallPrompt() {
 
   return (
     <div className="row mb-3 align-items-center justify-content-end">
-      <div className="col-auto">
+      <div className="col-md-auto col-12 mb-3 mb-md-0">
         Would you like to install Cinematix on your device?
       </div>
-      <div className="col-auto">
-        <button
-          className="btn btn-outline-secondary"
-          type="button"
-          name="status"
-          value="decline"
-          onClick={handleChange}
-        >
-          Cancel
-        </button>
-      </div>
-      <div className="col-auto">
-        <button
-          className="btn btn-outline-primary"
-          type="button"
-          name="status"
-          value="accept"
-          onClick={handleChange}
-        >
-          Install
-        </button>
+      <div className="col-md-auto col-12">
+        <div className="row flex-nowrap">
+          <div className="col">
+            <button
+              className="btn btn-block btn-outline-secondary"
+              type="button"
+              name="status"
+              value="decline"
+              onClick={handleChange}
+            >
+              Cancel
+            </button>
+          </div>
+          <div className="col">
+            <button
+              className="btn btn-block btn-outline-primary"
+              type="button"
+              name="status"
+              value="accept"
+              onClick={handleChange}
+            >
+              Install
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
