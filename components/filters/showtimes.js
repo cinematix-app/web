@@ -218,10 +218,10 @@ function Showtimes() {
           </button>
         </legend>
         <div className="form-group row align-items-center">
-          <div className="col-auto">
+          <div className="mb-1 col-md-auto col-12">
             <label className="mb-0" htmlFor="minPrice">Minimum</label>
           </div>
-          <div className="col">
+          <div className="mb-1 col-md col-12">
             <div className="input-group">
               <div className="input-group-prepend">
                 <span className="input-group-text">$</span>
@@ -242,10 +242,10 @@ function Showtimes() {
               </div>
             </div>
           </div>
-          <div className="col-auto">
+          <div className="mb-1 col-md-auto col-12">
             <label className="mb-0" htmlFor="maxPrice">Maximum</label>
           </div>
-          <div className="col">
+          <div className="mb-1 col-md col-12">
             <div className="input-group">
               <div className="input-group-prepend">
                 <span className="input-group-text">$</span>
