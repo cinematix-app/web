@@ -42,10 +42,6 @@ function Showtimes() {
       return true;
     }
 
-    if (offer.availability !== 'InStock') {
-      return false;
-    }
-
     let price;
     if (offer.price) {
       ({ price } = offer);
