@@ -137,7 +137,8 @@ function Showtimes() {
       videoFormat,
       startDate: showtimeStartDate,
     }) => {
-      if (offers.availability === 'Discontinued') {
+      // If the item has been discontinued or is sold out, remove it.
+      if (['Discontinued', 'SoldOut'].includes(offers.availability)) {
         return false;
       }
 
