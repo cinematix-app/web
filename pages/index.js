@@ -115,6 +115,7 @@ function resultReducer(state, action) {
     formats: mergeList(state.formats, action.formats),
     props: mergeList(state.props, action.props),
     // Clear the prices.
+    // @TODO Remove prices that no longer have a showtime associated with them.
     prices: [],
   };
 }
