@@ -4,13 +4,8 @@ import {
   useMemo,
   useCallback,
 } from 'react';
-import {
-  of,
-} from 'rxjs';
-import {
-  filter,
-  flatMap,
-} from 'rxjs/operators';
+import { of } from 'rxjs';
+import { flatMap } from 'rxjs/operators';
 import { DateTime, Duration } from 'luxon';
 import useReactor from '@cinematix/reactor';
 import reducer from '../context/reducer';

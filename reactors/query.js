@@ -111,8 +111,6 @@ function createQueryReactor(defaultQuery, wb) {
 
       const days = end.diff(start, 'days').get('day');
 
-      console.log('DAYS', days);
-
       const urls = new Set();
 
       for (let i = 0; i <= days; i += 1) {
