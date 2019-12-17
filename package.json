@@ -4,8 +4,9 @@
   "scripts": {
     "dev": "next",
     "build": "next build && next export",
+    "preview": "next build && next export && wrangler preview",
     "deploy": "next build && next export && wrangler publish",
-    "start": "next start",
+    "start": "npm run build && next start",
     "test": "eslint --ignore-path .gitignore ."
   },
   "license": "AGPL-3.0-or-later",
@@ -23,7 +24,8 @@
     "react-dom": "^16.12.0",
     "react-select": "^3.0.8",
     "rxjs": "^6.5.3",
-    "spinkit": "^2.0.1"
+    "spinkit": "^2.0.1",
+    "workbox-window": "^4.3.1"
   },
   "devDependencies": {
     "eslint": "^5.16.0",

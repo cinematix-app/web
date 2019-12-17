@@ -7,6 +7,7 @@ import { of, timer } from 'rxjs';
 import { flatMap } from 'rxjs/operators';
 import { DateTime } from 'luxon';
 import useReactor from '@cinematix/reactor';
+import { Workbox } from 'workbox-window';
 import ReducerContext from '../context/reducer';
 import QueryReducerContext from '../context/query-reducer';
 import Layout from '../components/layout';
@@ -17,6 +18,7 @@ import dateFormat from '../utils/date-format';
 import createQueryReactor from '../reactors/query';
 import getFormattedDateTime from '../utils/formatted-datetime';
 import useQueryReducer from '../hooks/query-reducer';
+import mergeList from '../utils/merge-list';
 
 const defaultQuery = {
   zipCode: '',
@@ -40,6 +42,9 @@ const defaultQuery = {
   formats: [],
   props: [],
   propsx: [],
+  price: '0',
+  minPrice: '',
+  maxPrice: '',
 };
 
 const initialState = {
@@ -52,14 +57,14 @@ const initialState = {
   ratings: [],
   formats: [],
   props: [],
+  prices: [],
   status: 'waiting',
   error: null,
+  needsUpdate: false,
 };
 
-const queryReactor = createQueryReactor(defaultQuery);
-
 /**
- * Take an existing list and a new list and merge them updating
+ * Take an existing action list and a new list and merge them updating
  * the existing items and adding new items, but not discarding anything.
  *
  * @param {array} existingList
@@ -67,12 +72,11 @@ const queryReactor = createQueryReactor(defaultQuery);
  *
  * @return {array}
  */
-function mergeList(existingList, newList) {
+function mergeActionList(existingList = [], newList = []) {
   const list = new Map();
 
-  existingList.forEach(item => list.set(item['@id'], item));
-  newList.forEach(item => list.set(item['@id'], item));
-
+  existingList.forEach(item => list.set(item.object['@id'], item));
+  newList.forEach(item => list.set(item.object['@id'], item));
 
   return [...list.values()];
 }
@@ -103,13 +107,15 @@ function resultReducer(state, action) {
     ...state,
     status: 'ready',
     showtimes: action.showtimes || [],
-    theaters: mergeList(state.theaters, action.theaters || []),
-    amenities: mergeList(state.amenities, action.amenities || []),
-    movies: mergeList(state.movies, action.movies || []),
-    genres: mergeList(state.genres, action.genres || []),
-    ratings: mergeList(state.ratings, action.ratings || []),
-    formats: mergeList(state.formats, action.formats || []),
-    props: mergeList(state.props, action.props || []),
+    theaters: mergeList(state.theaters, action.theaters),
+    amenities: mergeList(state.amenities, action.amenities),
+    movies: mergeList(state.movies, action.movies),
+    genres: mergeList(state.genres, action.genres),
+    ratings: mergeList(state.ratings, action.ratings),
+    formats: mergeList(state.formats, action.formats),
+    props: mergeList(state.props, action.props),
+    // Clear the prices.
+    prices: [],
   };
 }
 
@@ -145,8 +151,23 @@ function reducer(state, action) {
         ...state,
         today: action.value,
       };
+    case 'prices':
+      return {
+        ...state,
+        prices: mergeActionList(state.prices, action.prices),
+      };
+    case 'needsUpdate':
+      return {
+        ...state,
+        needsUpdate: true,
+      };
+    case 'updateRequested':
+      return {
+        ...state,
+        needsUpdate: false,
+      };
     default:
-      throw new Error();
+      throw new Error(`Invalid Action: ${action.type}`);
   }
 }
 
@@ -194,6 +215,9 @@ function queryReducer(state, action) {
   }
 }
 
+const wb = new Workbox('/service-worker.js');
+const queryReactor = createQueryReactor(defaultQuery, wb);
+
 function Index() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [queryState, queryDispatch] = useQueryReducer(queryReducer, defaultQuery);
@@ -208,6 +232,27 @@ function Index() {
     [state.today, queryState.endDate],
   );
 
+  // Register service worker and handle changes.
+  useEffect(() => {
+    wb.addEventListener('waiting', () => {
+      // Register the controlling event to reload the page.
+      wb.addEventListener('controlling', () => {
+        window.location.reload();
+      });
+
+      // Update the app state.
+      dispatch({ type: 'needsUpdate' });
+    });
+
+    // Don't register the service worker in dev... which doesn't seem to work for some reason.
+    if (!process.env.DEV) {
+      wb.register();
+    }
+  }, [
+    wb,
+    dispatch,
+  ]);
+
   // Update the query.
   useReactor(value$ => (
     queryReactor(value$.pipe(
@@ -217,6 +262,7 @@ function Index() {
         limit,
         ticketing,
         theaters,
+        needsUpdate,
         start,
         end,
       ]) => (of({
@@ -226,6 +272,7 @@ function Index() {
         startDate: start,
         endDate: end,
         theaters,
+        needsUpdate,
       }))),
     ))
   ), dispatch, [
@@ -233,6 +280,7 @@ function Index() {
     queryState.limit,
     queryState.ticketing,
     queryState.theaters,
+    state.needsUpdate,
     startDate,
     endDate,
   ]);

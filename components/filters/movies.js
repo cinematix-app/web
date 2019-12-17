@@ -23,7 +23,7 @@ function Movies() {
                   value="include"
                   onClick={handleChange}
                   aria-pressed={state.movie === 'include'}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', state.movie === 'include' ? 'active' : ''].join(' ')}
+                  className="btn btn-outline-secondary rounded-bottom-0 rounded-md-left"
                 >
                   Include
                 </button>
@@ -33,7 +33,7 @@ function Movies() {
                   value="exclude"
                   onClick={handleChange}
                   aria-pressed={state.movie === 'exclude'}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', state.movie === 'exclude' ? 'active' : ''].join(' ')}
+                  className="btn btn-outline-secondary rounded-bottom-0 rounded-md-right-0"
                 >
                   Exclude
                 </button>
@@ -42,7 +42,7 @@ function Movies() {
             <SearchSelect
               id="movies"
               property="P5693"
-              className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
+              className="select-container rounded-top-0 rounded-md-left-0 rounded-md-right align-self-stretch"
             />
           </div>
         </div>

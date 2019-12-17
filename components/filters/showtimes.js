@@ -60,15 +60,6 @@ function Showtimes() {
     };
   }, [state.today, startDate]);
 
-  const maxEndFormatted = useMemo(() => {
-    if (!startDate) {
-      return null;
-    }
-    const start = DateTime.fromFormat(startDate, dateFormat).startOf('day');
-
-    return start.plus({ days: 5 }).toFormat(dateFormat);
-  }, [startDate]);
-
   return (
     <>
       <div className="form-group">
@@ -83,7 +74,7 @@ function Showtimes() {
                   value="today"
                   onClick={handleChange}
                   aria-pressed={queryState.startDate === 'today'}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', queryState.startDate === 'today' ? 'active' : ''].join(' ')}
+                  className="btn btn-outline-secondary rounded-bottom-0 rounded-md-left"
                 >
                     Today
                 </button>
@@ -93,7 +84,7 @@ function Showtimes() {
                   value="tomorrow"
                   onClick={handleChange}
                   aria-pressed={queryState.startDate === 'tomorrow'}
-                  className={['btn', 'btn-outline-secondary', queryState.startDate === 'tomorrow' ? 'active' : ''].join(' ')}
+                  className="btn btn-outline-secondary"
                 >
                     Tomorrow
                 </button>
@@ -103,7 +94,7 @@ function Showtimes() {
                   value={dayAfterTomorrowFormatted}
                   onClick={handleChange}
                   aria-pressed={customStartDate}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', customStartDate ? 'active' : ''].join(' ')}
+                  className="btn btn-outline-secondary rounded-bottom-0 rounded-md-right-0"
                 >
                     Other
                 </button>
@@ -150,7 +141,7 @@ function Showtimes() {
                   onClick={handleChange}
                   disabled={endDateTodayDisabled}
                   aria-pressed={queryState.endDate === 'today'}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-left', queryState.endDate === 'today' ? 'active' : ''].join(' ')}
+                  className="btn btn-outline-secondary rounded-bottom-0 rounded-md-left"
                 >
                     Today
                 </button>
@@ -161,7 +152,7 @@ function Showtimes() {
                   onClick={handleChange}
                   disabled={endDateTomorrowDisabled}
                   aria-pressed={queryState.endDate === 'tomorrow'}
-                  className={['btn', 'btn-outline-secondary', queryState.endDate === 'tomorrow' ? 'active' : ''].join(' ')}
+                  className="btn btn-outline-secondary"
                 >
                     Tomorrow
                 </button>
@@ -171,9 +162,9 @@ function Showtimes() {
                   value={dayAfterTomorrowFormatted}
                   onClick={handleChange}
                   aria-pressed={customStartDate}
-                  className={['btn', 'btn-outline-secondary', 'rounded-bottom-0', 'rounded-md-right-0', customEndDate ? 'active' : ''].join(' ')}
+                  className="btn btn-outline-secondary rounded-bottom-0 rounded-md-right-0"
                 >
-                    Other
+                  Other
                 </button>
               </div>
             </div>
@@ -183,7 +174,6 @@ function Showtimes() {
               id="endDate"
               name="endDate"
               min={startDate}
-              max={maxEndFormatted}
               value={customEndDate ? queryState.endDate : ''}
               disabled={!customEndDate}
               onChange={handleChange}
@@ -214,6 +204,69 @@ function Showtimes() {
         <label>Properties</label>
         <PropMultiSelect id="props" />
       </div>
+      <fieldset className="form-group border rounded pl-3 pr-3" data-psuedo-disabled={queryState.price !== '1'}>
+        <legend className="w-auto">
+          <button
+            type="button"
+            name="price"
+            value={queryState.price === '1' ? '0' : '1'}
+            onClick={handleChange}
+            aria-pressed={queryState.price === '1'}
+            className="btn btn-outline-secondary"
+          >
+            Price
+          </button>
+        </legend>
+        <div className="form-group row align-items-center">
+          <div className="col-auto">
+            <label className="mb-0" htmlFor="minPrice">Minimum</label>
+          </div>
+          <div className="col">
+            <div className="input-group">
+              <div className="input-group-prepend">
+                <span className="input-group-text">$</span>
+              </div>
+              <input
+                type="number"
+                id="minPrice"
+                name="minPrice"
+                value={queryState.minPrice}
+                min="0"
+                max={queryState.maxPrice}
+                onChange={handleChange}
+                className="form-control rounded"
+                disabled={queryState.price !== '1'}
+              />
+              <div className="input-group-append">
+                <span className="input-group-text">.00</span>
+              </div>
+            </div>
+          </div>
+          <div className="col-auto">
+            <label className="mb-0" htmlFor="maxPrice">Maximum</label>
+          </div>
+          <div className="col">
+            <div className="input-group">
+              <div className="input-group-prepend">
+                <span className="input-group-text">$</span>
+              </div>
+              <input
+                type="number"
+                id="maxPrice"
+                name="maxPrice"
+                value={queryState.maxPrice}
+                min={queryState.minPrice || '0'}
+                onChange={handleChange}
+                className="form-control rounded"
+                disabled={queryState.price !== '1'}
+              />
+              <div className="input-group-append">
+                <span className="input-group-text">.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
     </>
   );
 }

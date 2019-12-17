@@ -2,18 +2,23 @@ import {
   Fragment,
   useContext,
   useMemo,
+  useCallback,
 } from 'react';
+import { of } from 'rxjs';
+import { flatMap } from 'rxjs/operators';
 import { DateTime, Duration } from 'luxon';
+import useReactor from '@cinematix/reactor';
 import reducer from '../context/reducer';
 import getTodayDateTime from '../utils/today-datetime';
 import useDisplayFilter from '../hooks/display-filter';
 import useDisplayFilterExclusive from '../hooks/display-filter-exclusive';
 import queryReducer from '../context/query-reducer';
-
-const previews = 20;
+import priceReactor from '../reactors/price';
+import Showtime from './showtime';
+import { previews } from '../utils/config';
 
 function Showtimes() {
-  const [state] = useContext(reducer);
+  const [state, dispatch] = useContext(reducer);
   const [queryState] = useContext(queryReducer);
 
   const startTime = useMemo(() => (
@@ -30,6 +35,55 @@ function Showtimes() {
   const ratingFilter = useDisplayFilterExclusive(queryState.ratings, queryState.rating);
   const formatFilter = useDisplayFilterExclusive(queryState.formats, queryState.format);
   const propFilter = useDisplayFilter(queryState.props, queryState.propsx);
+
+  const priceFilter = useCallback((offer) => {
+    // If the price filters are not enabled, do not remove any item.
+    if (queryState.price !== '1') {
+      return true;
+    }
+
+    let price;
+    if (offer.price) {
+      ({ price } = offer);
+    } else {
+      const action = state.prices.find(({ object }) => object['@id'] === offer['@id']);
+
+      if (action) {
+        // If the item has been determined to be discontinued, remove it.
+        if (action.object.availability === 'Discontinued') {
+          return false;
+        }
+
+        ({ price } = action.object);
+      }
+    }
+
+    // The object has no price.
+    if (!price) {
+      return true;
+    }
+
+    if (queryState.minPrice !== '') {
+      const minPrice = parseInt(queryState.minPrice, 10);
+      if (price <= minPrice) {
+        return false;
+      }
+    }
+
+    if (queryState.maxPrice !== '') {
+      const maxPrice = parseInt(queryState.maxPrice, 10);
+      if (price >= maxPrice) {
+        return false;
+      }
+    }
+
+    return true;
+  }, [
+    queryState.price,
+    queryState.minPrice,
+    queryState.maxPrice,
+    state.prices,
+  ]);
 
   // Calculate the last end time, regardless of the day the show starts on.
   const endOfDay = useMemo(() => {
@@ -115,6 +169,10 @@ function Showtimes() {
         return false;
       }
 
+      if (!priceFilter(offers)) {
+        return false;
+      }
+
       if (startTime || endTime) {
         const showStart = DateTime.fromISO(showtimeStartDate);
 
@@ -174,9 +232,25 @@ function Showtimes() {
     movieFilter,
     propFilter,
     theaterFilter,
+    priceFilter,
     startTime,
     endTime,
     endOfDay,
+  ]);
+
+  useReactor(value$ => (
+    priceReactor(value$.pipe(
+      // Convert to Objects
+      flatMap(([price, times, prices]) => of({
+        price,
+        showtimes: times,
+        prices,
+      })),
+    ))
+  ), dispatch, [
+    queryState.price,
+    showtimes,
+    state.prices,
   ]);
 
   const hasFutureShowtimes = useMemo(() => {
@@ -197,97 +271,30 @@ function Showtimes() {
   const showtimeWidth = hasFutureShowtimes ? 5 : 4;
   const showtimeDeatailWidth = hasFutureShowtimes ? 3 : 4;
 
-  const rows = useMemo(() => {
-    const today = getTodayDateTime(state.today);
-
-    return showtimes.map((showtime) => {
-      let movieDisplay;
-      if (showtime.workPresented) {
-        movieDisplay = (
-          <a href={showtime.workPresented.url}>
-            {showtime.workPresented.name}
-          </a>
-        );
-      }
-
-      let theaterDisplay;
-      if (showtime.location) {
-        theaterDisplay = (
-          <a href={showtime.location.url}>
-            {showtime.location.name}
-          </a>
-        );
-      }
-
-      let className = [
-        'btn',
-        'btn-block',
-      ];
-      if (showtime.offers.availability === 'InStock') {
-        className = [
-          ...className,
-          'btn-outline-primary',
-        ];
-      } else {
-        className = [
-          ...className,
-          'btn-outline-secondary',
-          'disabled',
-        ];
-      }
-
-      const showStart = DateTime.fromISO(showtime.startDate);
-
-      const duration = Duration.fromISO(showtime.workPresented.duration);
-      const showEnd = duration.get('minutes') > 0
-        ? showStart.plus(duration).plus({ minutes: previews })
-        : null;
-
-      let dateDisplay;
-      if (hasFutureShowtimes) {
-        dateDisplay = (
-          <div className={`col-sm-${showtimeDeatailWidth} col-4 mb-2`}>
-            <time dateTime={showtime.startDate}>
-              {!today || !showStart.startOf('day').equals(today) ? showStart.toLocaleString(DateTime.DATE_SHORT) : null}
-            </time>
-          </div>
-        );
-      }
+  const rows = useMemo(() => (
+    showtimes.map((showtime) => {
+      const price = queryState.price !== '1' ? undefined : state.prices.find(action => action.object['@id'] === showtime.offers['@id']);
 
       return (
-        <div key={showtime['@id']} className="row align-items-center mb-2 mb-lg-0">
-          <div className={`col-lg-${movieWidth} mb-2`}>
-            {movieDisplay}
-          </div>
-          <div className={`col-lg-${theaterWidth} mb-2`}>
-            {theaterDisplay}
-          </div>
-          <div className={`col-lg-${showtimeWidth} mb-2`}>
-            <div className="row align-items-center">
-              {dateDisplay}
-              <div className={`col-sm-${showtimeDeatailWidth} col-4 mb-2`}>
-                <time dateTime={showtime.startDate}>
-                  {showStart.toLocaleString(DateTime.TIME_SIMPLE)}
-                </time>
-              </div>
-              <div className={`col-sm-${showtimeDeatailWidth} col-4 mb-2`}>
-                <time dateTime={showEnd ? showEnd.toISO() : undefined}>
-                  {showEnd ? showEnd.toLocaleString(DateTime.TIME_SIMPLE) : undefined}
-                </time>
-              </div>
-              <div className={`col-sm-${showtimeDeatailWidth} col-12`}>
-                <a className={className.join(' ')} href={showtime.offers.url}>
-                  →
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Showtime
+          key={showtime['@id']}
+          showtime={showtime}
+          price={price}
+          today={state.today}
+          width={showtimeWidth}
+          theaterWidth={theaterWidth}
+          movieWidth={movieWidth}
+          detailWidth={showtimeDeatailWidth}
+          hasFutureShowtimes={hasFutureShowtimes}
+          showPrice={queryState.price === '1'}
+        />
       );
-    });
-  }, [
+    })
+  ), [
     state.today,
     showtimes,
+    queryState.price,
+    state.prices,
     movieWidth,
     theaterWidth,
     showtimeWidth,
@@ -330,7 +337,7 @@ function Showtimes() {
               Start
             </h5>
             <h5 className={`col-${showtimeDeatailWidth} mb-0`}>
-              End <small><small><abbr title="assumes 20 minutes of previews">approx</abbr></small></small>
+              End <small><small><abbr title={`assumes ${previews} minutes of previews`}>approx</abbr></small></small>
             </h5>
           </div>
         </div>
