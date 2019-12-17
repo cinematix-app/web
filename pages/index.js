@@ -103,10 +103,12 @@ function resultReducer(state, action) {
     return state;
   }
 
+  const showtimes = action.showtimes || [];
+
   return {
     ...state,
     status: 'ready',
-    showtimes: action.showtimes || [],
+    showtimes,
     theaters: mergeList(state.theaters, action.theaters),
     amenities: mergeList(state.amenities, action.amenities),
     movies: mergeList(state.movies, action.movies),
@@ -114,8 +116,8 @@ function resultReducer(state, action) {
     ratings: mergeList(state.ratings, action.ratings),
     formats: mergeList(state.formats, action.formats),
     props: mergeList(state.props, action.props),
-    // Clear the prices.
-    prices: [],
+    // Remove prices that no longer have a showtime associated with them.
+    prices: state.prices.filter(a => showtimes.find(({ offers }) => a.object['@id'] === offers['@id'])),
   };
 }
 

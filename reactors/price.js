@@ -6,7 +6,6 @@ import {
 } from 'rxjs';
 import {
   flatMap,
-  map,
   catchError,
   filter,
   reduce,
@@ -22,33 +21,47 @@ function getUrl(id) {
 function handleResponse() {
   return source$ => source$.pipe(
     filter(r => !!r),
-    flatMap(r => r.json()),
-    map((data) => {
-      // Remove context.
-      const { '@context': context, ...result } = data;
+    flatMap(response => from(response.json()).pipe(
+      flatMap((data) => {
+        // Remove context.
+        const { '@context': context, ...result } = data;
 
-      return {
-        type: 'prices',
-        prices: [
-          {
-            '@type': 'DownloadAction',
-            acitonStatus: 'CompletedActionStatus',
-            object: result,
+        if (!response.ok) {
+          return of({
+            type: 'prices',
+            prices: [result],
+          });
+        }
+
+        return of({
+          type: 'prices',
+          prices: [
+            {
+              '@type': 'DownloadAction',
+              acitonStatus: 'CompletedActionStatus',
+              object: result,
+            },
+          ],
+        });
+      }),
+    )),
+  );
+}
+
+function catchNetworkError(id) {
+  return source$ => source$.pipe(
+    catchError(() => of({
+      type: 'prices',
+      prices: [
+        {
+          '@type': 'DownloadAction',
+          acitonStatus: 'FailedActionStatus',
+          object: {
+            '@id': id,
           },
-        ],
-      };
-    }),
-    // @TODO fetch/cache doesn't throw an error,
-    //       it sets response.ok to false. We should do the same.
-    catchError(({ response }) => {
-      // Remove context.
-      const { '@context': context, ...result } = response;
-
-      return of({
-        type: 'prices',
-        prices: [result],
-      });
-    }),
+        },
+      ],
+    })),
   );
 }
 
@@ -125,8 +138,12 @@ function priceReactor(value$) {
           }),
         ),
         from(ids).pipe(
-          flatMap(id => fromFetch(getUrl(id)), undefined, concurrency),
-          handleResponse(),
+          flatMap(id => (
+            fromFetch(getUrl(id)).pipe(
+              handleResponse(),
+              catchNetworkError(id),
+            )
+          ), undefined, concurrency),
         ),
       );
     }),
