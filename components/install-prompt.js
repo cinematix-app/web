@@ -74,30 +74,34 @@ function InstallPrompt() {
 
   return (
     <div className="row mb-3 align-items-center justify-content-end">
-      <div className="col-auto">
+      <div className="col-md-auto col-12 mb-3 mb-md-0">
         Would you like to install Cinematix on your device?
       </div>
-      <div className="col-auto">
-        <button
-          className="btn btn-outline-secondary"
-          type="button"
-          name="status"
-          value="decline"
-          onClick={handleChange}
-        >
-          Cancel
-        </button>
-      </div>
-      <div className="col-auto">
-        <button
-          className="btn btn-outline-primary"
-          type="button"
-          name="status"
-          value="accept"
-          onClick={handleChange}
-        >
-          Install
-        </button>
+      <div className="col-md-auto col-12">
+        <div className="row flex-nowrap">
+          <div className="col">
+            <button
+              className="btn btn-block btn-outline-secondary"
+              type="button"
+              name="status"
+              value="decline"
+              onClick={handleChange}
+            >
+              Cancel
+            </button>
+          </div>
+          <div className="col">
+            <button
+              className="btn btn-block btn-outline-primary"
+              type="button"
+              name="status"
+              value="accept"
+              onClick={handleChange}
+            >
+              Install
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
