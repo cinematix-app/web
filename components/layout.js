@@ -23,7 +23,7 @@ function Layout({ children }) {
         <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/16x16.png" />
         <link rel="manifest" href="/static/manifest.json" />
       </Head>
-      <header className="pt-2 pb-2 mb-4">
+      <header className="pt-2 pb-2">
         <div className="container">
           <div className="row">
             <div className="col">
@@ -36,7 +36,7 @@ function Layout({ children }) {
           </div>
         </div>
       </header>
-      <main className="container d-flex flex-column flex-grow-1">
+      <main className="container d-flex flex-column flex-grow-1 mt-4">
         {children}
       </main>
     </Fragment>
