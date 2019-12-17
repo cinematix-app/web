@@ -87,7 +87,7 @@ function createQueryReactor(defaultQuery, wb) {
       && z.ticketing === y.ticketing
       && z.startDate === y.startDate
       && z.endDate === y.endDate
-      && z.theaters === y.theaters
+      && z.theaters.sort().toString() === y.theaters.sort().toString()
     )),
     switchMap((q) => {
       if (q.theaters.length === 0 && q.zipCode.length < 5) {
