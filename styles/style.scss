@@ -83,6 +83,12 @@ a:hover .sk-wave-rect {
     background-color: $dropdown-link-hover-color;
 }
 
+@media all and (display-mode: standalone) {
+  header {
+    display: none;
+  }
+}
+
 @each $breakpoint in map-keys($grid-breakpoints) {
     @include media-breakpoint-up($breakpoint) {
         $infix: breakpoint-infix($breakpoint, $grid-breakpoints);

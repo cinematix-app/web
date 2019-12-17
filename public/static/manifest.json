@@ -1,0 +1,22 @@
+{
+  "name": "Cinematix",
+  "icons": [
+    {
+      "src": "/static/icons/192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/static/icons/512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#55555F",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#FEF638"
+}

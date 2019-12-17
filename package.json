@@ -16,6 +16,7 @@
     "@zeit/next-sass": "^1.0.1",
     "bootstrap": "^4.4.1",
     "jsonld": "^1.8.1",
+    "kv-storage-polyfill": "^2.0.0",
     "luxon": "^1.21.3",
     "next": "^9.1.5",
     "next-offline": "^4.0.6",

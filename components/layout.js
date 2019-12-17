@@ -17,6 +17,11 @@ function Layout({ children }) {
         <meta property="og:image" content="https://cinematix.app/static/og2.png" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="theme-color" content="#FEF638" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/180x180.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/16x16.png" />
+        <link rel="manifest" href="/static/manifest.json" />
       </Head>
       <header className="pt-2 pb-2 mb-4">
         <div className="container">
