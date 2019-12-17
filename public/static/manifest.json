@@ -1,5 +1,8 @@
 {
   "name": "Cinematix",
+  "description": "A faster, better way to find movie showtimes that work for you.",
+  "lang": "en-US",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/static/icons/192x192.png",
