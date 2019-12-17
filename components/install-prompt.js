@@ -8,20 +8,28 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'storage':
+      if (action.payload === 'declined') {
+        return {
+          ...state,
+          status: action.payload,
+        };
+      }
+
+      return {
+        ...state,
+        status: state.status === 'promptReady' ? 'prompt' : 'ready',
+      };
     case 'change':
       return {
         ...state,
         [action.name]: action.value,
       };
-    case 'prompt':
-      if (state.status === 'ready') {
-        return {
-          ...state,
-          status: 'prompt',
-        };
-      }
-
-      return state;
+    case 'promptReady':
+      return {
+        ...state,
+        status: state.status === 'ready' ? 'prompt' : 'promptReady',
+      };
     default:
       throw new Error('Invalid Action');
   }
@@ -33,24 +41,21 @@ function InstallPrompt() {
   const promptRef = useRef(null);
 
   useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      promptRef.current = e;
+      dispatch({ type: 'promptReady' });
+    });
+
     storage.get('install').then((value) => {
       dispatch({
-        type: 'change',
-        name: 'status',
-        value: value || 'ready',
+        type: 'storage',
+        payload: value,
       });
     });
   }, []);
 
   useEffect(() => {
-    if (state.status === 'ready') {
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        promptRef.current = e;
-        dispatch({ type: 'prompt' });
-      });
-    }
-
     if (state.status === 'accept') {
       promptRef.current.prompt();
     }

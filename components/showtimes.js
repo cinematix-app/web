@@ -288,6 +288,7 @@ function Showtimes() {
           detailWidth={showtimeDeatailWidth}
           hasFutureShowtimes={hasFutureShowtimes}
           showPrice={queryState.price === '1'}
+          standalone={state.standalone}
         />
       );
     })

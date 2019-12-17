@@ -62,7 +62,7 @@ const initialState = {
   status: 'waiting',
   error: null,
   needsUpdate: false,
-  install: '',
+  standalone: false,
 };
 
 /**
@@ -169,6 +169,11 @@ function reducer(state, action) {
       return {
         ...state,
         needsUpdate: false,
+      };
+    case 'standalone':
+      return {
+        ...state,
+        standalone: true,
       };
     default:
       throw new Error(`Invalid Action: ${action.type}`);
@@ -300,6 +305,12 @@ function Index() {
     });
 
     return () => sub.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      dispatch({ type: 'standalone' });
+    }
   }, []);
 
   return (
