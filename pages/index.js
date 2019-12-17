@@ -19,6 +19,7 @@ import createQueryReactor from '../reactors/query';
 import getFormattedDateTime from '../utils/formatted-datetime';
 import useQueryReducer from '../hooks/query-reducer';
 import mergeList from '../utils/merge-list';
+import InstallPrompt from '../components/install-prompt';
 
 const defaultQuery = {
   zipCode: '',
@@ -61,6 +62,7 @@ const initialState = {
   status: 'waiting',
   error: null,
   needsUpdate: false,
+  install: '',
 };
 
 /**
@@ -305,6 +307,7 @@ function Index() {
       <QueryReducerContext.Provider value={[queryState, queryDispatch]}>
         <ReducerContext.Provider value={[state, dispatch]}>
           <Form />
+          <InstallPrompt />
           <Status isEmpty={state.showtimes.length === 0} status={state.status} error={state.error}>
             <Showtimes />
           </Status>
