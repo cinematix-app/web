@@ -49,8 +49,8 @@ function Showtimes() {
       const action = state.prices.find(({ object }) => object['@id'] === offer['@id']);
 
       if (action) {
-        // If the item has been determined to be discontinued, remove it.
-        if (action.object.availability === 'Discontinued') {
+        // If the item has been determined to be discontinued or is sold out, remove it.
+        if (['Discontinued', 'SoldOut'].includes(action.object.availability)) {
           return false;
         }
 
@@ -137,7 +137,8 @@ function Showtimes() {
       videoFormat,
       startDate: showtimeStartDate,
     }) => {
-      if (offers.availability === 'Discontinued') {
+      // If the item has been discontinued or is sold out, remove it.
+      if (['Discontinued', 'SoldOut'].includes(offers.availability)) {
         return false;
       }
 
