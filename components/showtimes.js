@@ -5,7 +5,7 @@ import {
   useCallback,
 } from 'react';
 import { of } from 'rxjs';
-import { flatMap } from 'rxjs/operators';
+import { flatMap, shareReplay } from 'rxjs/operators';
 import { DateTime, Duration } from 'luxon';
 import useReactor from '@cinematix/reactor';
 import reducer from '../context/reducer';
@@ -241,6 +241,8 @@ function Showtimes() {
 
   useReactor(value$ => (
     priceReactor(value$.pipe(
+      // Make Replayable.
+      shareReplay(1),
       // Convert to Objects
       flatMap(([price, times, prices]) => of({
         price,
