@@ -122,9 +122,12 @@ function priceActionReducer(acc, action) {
 
 function priceReactor(value$) {
   return value$.pipe(
-    // If price is not enabled, stop.
-    filter(({ price }) => price === '1'),
-    map(({ showtimes, prices }) => {
+    map(({ showtimes, price, prices }) => {
+      // If price is not enabled, stop, but allow this to be counted as a 'change'
+      if (price !== '1') {
+        return [];
+      }
+
       // Remove showtimes that do not have an offer
       const filtered = showtimes.filter((showtime) => {
         if (!showtime.offers) {
@@ -160,8 +163,8 @@ function priceReactor(value$) {
 
       return ids;
     }),
-    filter(ids => ids.length !== 0),
     distinctUntilChanged((x, y) => x.sort().toString() === y.sort().toString()),
+    filter(ids => ids.length !== 0),
     flatMap((ids) => {
       // Create action objects to track the status of the price.
       const actions = ids.map(id => ({
