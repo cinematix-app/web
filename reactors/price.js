@@ -12,7 +12,6 @@ import {
   first,
   bufferTime,
   map,
-  distinctUntilChanged,
   withLatestFrom,
 } from 'rxjs/operators';
 import { fromFetch } from 'rxjs/fetch';
@@ -161,7 +160,6 @@ function priceReactor(value$) {
       return ids;
     }),
     filter(ids => ids.length !== 0),
-    distinctUntilChanged((x, y) => x.sort().toString() === y.sort().toString()),
     flatMap((ids) => {
       // Create action objects to track the status of the price.
       const actions = ids.map(id => ({
