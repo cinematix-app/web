@@ -126,7 +126,11 @@ function Showtimes() {
     state.showtimes,
   ]);
 
-  const showtimes = useMemo(() => {
+  // Filter the showtimes with the basic filters
+  // (the filters that are not effected by sub-requests).
+  // This prevents the sub-requests from getting into a cache loop
+  // (filtered out based on cache, which causes the sub-requests to be canceled).
+  const basicShowtimes = useMemo(() => {
     const endofDayDateTime = endOfDay ? DateTime.fromISO(endOfDay) : null;
 
     return [...(state.showtimes || [])].filter(({
@@ -167,10 +171,6 @@ function Showtimes() {
       }
 
       if (!propFilter(additionalProperty)) {
-        return false;
-      }
-
-      if (!priceFilter(offers)) {
         return false;
       }
 
@@ -221,7 +221,7 @@ function Showtimes() {
 
       return true;
     }).sort((a, b) => (
-    // @TODO make the sort configurable.
+      // @TODO make the sort configurable.
       DateTime.fromISO(a.startDate) - DateTime.fromISO(b.startDate)
     ));
   }, [
@@ -233,7 +233,6 @@ function Showtimes() {
     movieFilter,
     propFilter,
     theaterFilter,
-    priceFilter,
     startTime,
     endTime,
     endOfDay,
@@ -252,8 +251,22 @@ function Showtimes() {
     ))
   ), dispatch, [
     queryState.price,
-    showtimes,
+    basicShowtimes,
     state.prices,
+  ]);
+
+  // Filter the showtimes based on the price.
+  const showtimes = useMemo(() => (
+    basicShowtimes.filter(({ offers }) => {
+      if (!priceFilter(offers)) {
+        return false;
+      }
+
+      return true;
+    })
+  ), [
+    priceFilter,
+    basicShowtimes,
   ]);
 
   const hasFutureShowtimes = useMemo(() => {
