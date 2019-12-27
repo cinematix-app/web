@@ -156,6 +156,11 @@ function reducer(state, action) {
         today: action.value,
       };
     case 'prices':
+      // Prevent a re-render if no prices are being merged.
+      if (action.prices.length === 0) {
+        return state;
+      }
+
       return {
         ...state,
         prices: mergeActionList(state.prices, action.prices),
