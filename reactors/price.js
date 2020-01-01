@@ -4,6 +4,7 @@ import {
   concat,
   race,
   defer,
+  EMPTY,
 } from 'rxjs';
 import {
   flatMap,
@@ -196,6 +197,8 @@ function priceReactor(value$) {
                 ),
                 defer(() => caches.match(getUrl(id))).pipe(
                   handleResponse(),
+                  // Ignore cached error responses.
+                  catchError(() => EMPTY),
                 ),
               );
             }),
