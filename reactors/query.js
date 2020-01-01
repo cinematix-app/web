@@ -4,6 +4,7 @@ import {
   forkJoin,
   EMPTY,
   from,
+  defer,
 } from 'rxjs';
 import {
   switchMap,
@@ -154,7 +155,7 @@ function createQueryReactor(defaultQuery, wb) {
         }),
         // If any of the urls are in the cache, get those first.
         from([...urls.values()]).pipe(
-          flatMap(url => caches.match(url)),
+          flatMap(url => defer(() => caches.match(url))),
           handleResponse(),
           // Do not remove the fetching status if there are no showtimes to return.
           filter(action => !!action.showtimes.length),
