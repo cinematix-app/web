@@ -157,6 +157,8 @@ function createQueryReactor(defaultQuery, wb) {
         from([...urls.values()]).pipe(
           flatMap(url => defer(() => caches.match(url))),
           handleResponse(),
+          // Ignore cached error responses.
+          catchError(() => EMPTY),
           // Do not remove the fetching status if there are no showtimes to return.
           filter(action => !!action.showtimes.length),
         ),
