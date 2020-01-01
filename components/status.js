@@ -17,7 +17,7 @@ function Status({
     return (
       <div className="error">
         <div className="alert alert-danger" role="alert">
-          An error occured with the request to <a href={error.request.url} className="alert-link">{error.request.url}</a>
+          An error occured with a request to <a href={error.response.url} className="alert-link">{error.response.url}</a>
         </div>
       </div>
     );
