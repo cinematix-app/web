@@ -28,7 +28,7 @@ function PropMultiSelect({ id }) {
           inputId={id}
           name={id}
           options={options}
-          className={['select-container', 'rounded-0', 'align-self-stretch'].join(' ')}
+          className="select-container rounded-top-0 rounded-md-left-0 rounded-md-right-0 align-self-stretch"
           classNamePrefix="select"
           value={values}
           onChange={handleListChange}
@@ -44,7 +44,7 @@ function PropMultiSelect({ id }) {
           inputId={xid}
           name={xid}
           options={optionsx}
-          className={['select-container', 'rounded-top-0', 'rounded-md-left-0', 'rounded-md-right', 'align-self-stretch'].join(' ')}
+          className="select-container rounded-top-0 rounded-md-left-0 rounded-md-right align-self-stretch"
           classNamePrefix="select"
           value={valuesx}
           onChange={handleListChangex}
