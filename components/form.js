@@ -23,6 +23,7 @@ function Form() {
             type="text"
             id="zipCode"
             name="zipCode"
+            inputMode="numeric"
             pattern="[0-9]{5}"
             value={state.zipCode}
             onChange={handleChange}
