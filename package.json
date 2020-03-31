@@ -18,7 +18,7 @@
     "jsonld": "^1.8.1",
     "kv-storage-polyfill": "^2.0.0",
     "luxon": "^1.21.3",
-    "next": "^9.1.5",
+    "next": "^9.3.2",
     "next-offline": "^4.0.6",
     "node-sass": "^4.13.0",
     "react": "^16.12.0",
