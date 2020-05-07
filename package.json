@@ -7,7 +7,7 @@
     "preview": "next build && next export && wrangler preview",
     "deploy": "next build && next export && wrangler publish",
     "start": "npm run build && next start",
-    "test": "eslint --ignore-path .gitignore ."
+    "test": "next build && eslint --ignore-path .gitignore ."
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
