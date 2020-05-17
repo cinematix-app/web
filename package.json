@@ -11,7 +11,7 @@
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@cinematix/next-cloudflare": "^1.1.0",
+    "@cinematix/next-cloudflare": "^1.1.1",
     "@cinematix/reactor": "^2.0.0",
     "@zeit/next-sass": "^1.0.1",
     "bootstrap": "^4.4.1",
@@ -20,7 +20,7 @@
     "luxon": "^1.21.3",
     "next": "^9.3.6",
     "next-offline": "^4.0.6",
-    "node-sass": "^4.13.0",
+    "node-sass": "^4.14.1",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-select": "^3.0.8",
