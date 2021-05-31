@@ -11,7 +11,6 @@
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@cinematix/next-cloudflare": "^1.1.1",
     "@cinematix/reactor": "^2.0.0",
     "@zeit/next-sass": "^1.0.1",
     "bootstrap": "^4.4.1",

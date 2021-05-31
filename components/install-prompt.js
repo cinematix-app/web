@@ -75,7 +75,7 @@ function InstallPrompt() {
   return (
     <div className="row mb-3 align-items-center justify-content-end">
       <div className="col-md-auto col-12 mb-3 mb-md-0">
-        Would you like to install Cinematix on your device?
+        Would you like to install Cinematix on this device?
       </div>
       <div className="col-md-auto col-12">
         <div className="row flex-nowrap">

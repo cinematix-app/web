@@ -1,9 +1,0 @@
-name = "cinematix-web"
-type = "webpack"
-account_id = "2659099e440328a773821e7db5363a84"
-zone_id = "747fb54a3ed6547ef6bc87ba2454e8b9"
-route = "cinematix.app/*"
-
-[site]
-bucket = "./out"
-entry-point = ""
