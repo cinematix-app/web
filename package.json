@@ -1,6 +1,5 @@
 {
-  "name": "@cinematix/web",
-  "main": "index.js",
+  "name": "@cinematix/cinematix",
   "scripts": {
     "dev": "next",
     "build": "next build && next export",
